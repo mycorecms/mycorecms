@@ -185,12 +185,8 @@ a.back,a.close_row,a.edit_row{color:red;font-size:120%;text-transform: uppercase
 
 
 		/* HEADING PROPERTIES */
-h1 { font-size: 200%; color:#ff9933;}
-h2, h3, h4, h5, h6{font-size: 130%;text-transform: uppercase;color:#fff;background: #4682b4;}
-h3 {padding: 2.7px;font-size: 102%;}
-h4 {padding: 2.5px;font-size: 88%;color:#fff;background: #d2b48c;}
-h5 {padding: 5px;font-size: 80%;text-align:center;}
-h6 {padding: 1px;font-size: 80%;background: #006633;text-align:center;}
+h1,h2, h3, h4, h5, h6{font-weight: bold;margin:0px;font-size:120%;}
+
 
 /*  Table Options Menu Properties */
 a.result_limiter {border: 1px solid #000080;padding: 2px 6px 2px 6px;color: #000080;}

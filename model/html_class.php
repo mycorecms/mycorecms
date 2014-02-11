@@ -48,6 +48,8 @@ class HtmlClass {
 		$this->doctype = "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\"\n \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">\n";
 		$this->htmlargs = "xmlns=\"http://www.w3.org/1999/xhtml\" xml:lang=\"en\" lang=\"en\"";
 		$this->meta = "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" /><meta http-equiv=\"Cache-control\" content=\"private\">";
+		$this->meta.=" <meta name='description' content='MyCoreCMS is a lightweight jQuery driven CMS designed to easily build dynamic relational databases.'>";
+		$this->meta .="<meta name='keywords' content='jQuery,CRM,CMS,DBMS,MyCoreCMS,Database,Administration,Management,Open Source'> ";
 		$this->head = "";
 		$this->content = "";
 		$this->templatedir =  SITEPATH."/view/".SITE_TEMPLATE."/";

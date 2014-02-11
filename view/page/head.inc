@@ -13,7 +13,6 @@
 <script language='JavaScript' src='%TEMPLATEURL%/js/jquery.address-1.5.min.js' type='text/javascript'></script>
 <script language='JavaScript' src='%TEMPLATEURL%/js/jquery.maskedinput.js' type='text/javascript'></script>
 <script language='JavaScript' src='%TEMPLATEURL%/js/codemirror-compressed.js'></script>
-<!--<script language='JavaScript' src='%TEMPLATEURL%/js/jquery.autocomplete.js' type='text/javascript'></script>  -->
 <script language='JavaScript' src='%TEMPLATEURL%/js/jquery.simplemodal.1.4.4.min.js' type='text/javascript'></script>
 
 

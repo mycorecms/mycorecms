@@ -121,7 +121,7 @@ class MenuClass {
           $this->login .="\t<li><a class='menu_link' href='".$_SERVER['PHP_SELF']."?get_page=site/user.php&amp;action=Show_Results'>USERS</a></li> |\n";
         else if($class != 'Public')
             $this->login .="\t<li><a class='menu_link' href='".$_SERVER['PHP_SELF']."?get_page=site/user.php&amp;action=Edit'>MY ACCOUNT</a></li> |\n";
-        $this->login .="\t<li><a class='menu_link' href='http://www.mycorecms.com/index.php?get_page=site/support.php'>SUPPORT</a></li> |\n";
+        $this->login .="\t<li><a class='menu_link' href='http://www.mycorecms.com/index.php?get_page=community/support.php'>SUPPORT</a></li> |\n";
         if($class != 'Public')
             $this->login .="\t<li><a href='".$_SERVER['PHP_SELF']."?get_page=-3&amp;action=logout'>LOGOUT</a></li>\n";
         else
