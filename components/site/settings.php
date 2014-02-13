@@ -36,6 +36,8 @@ class SettingsClass extends TableClass{
            "homepage" => array("type"=>"textarea","min_length" => 1, "searchable" => TRUE,"description"=>"Information that appears on the homepage","default"=>"<p style='text-align:center'>Welcome to ".str_replace("www.","",$_SERVER['SERVER_NAME']).".<br/>Select a page to view from the menu.</p>"),
            "logo" => array("type"=>"file","min_length" => 0),
            "site_name" => array("type"=>"text","min_length" => 0,"description"=>"Used for copyright on footer","default"=>ucfirst(str_replace("www.","",$_SERVER['SERVER_NAME']))),
+           "captcha" => array("type"=>"checkbox","min_length" => 0,"description"=>"Help prevent spam by enabling captcha, only applies to non logged in users."),
+           "analytics_key" => array("type"=>"text","min_length" => 0,"description"=>"Your Google Universal Analytics Key, EX:UA-99999999-1"),
            "template" => array("type"=>"list","min_length" => 1,"options"=>array('page'),"default"=>"page","description"=>"Due to the dynamic nature of the system, only one template can be used at a time."),
     	);
         $this->mysql = new MySQLClass($this->db->get_db(),$this->fields,$this->table_name,$this->primary_key);

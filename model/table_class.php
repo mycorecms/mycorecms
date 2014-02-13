@@ -199,6 +199,12 @@ class TableClass{
         switch (isset($action) ? $action : $this->variables['action']) {
            case "Add":
              if($this->permissions['add']){
+               $captcha_check = TRUE;
+             if($this->user->mysql->user_role == 'Public' AND SITE_CAPTCHA )
+                  $captcha_check =  $this->recaptcha_check_answer (SITE_CAPTCHA_PRIVATE,$_SERVER["REMOTE_ADDR"],$_REQUEST["recaptcha_challenge_field"],$_REQUEST["recaptcha_response_field"]);
+
+
+             if ($captcha_check){
               $this->variables['error'] = '';
               // Call routine to perform add
               	$this->mysql->clear();
@@ -228,6 +234,9 @@ class TableClass{
                       }
 
                   }
+             }
+             else
+                 $this->variables['error'] = "Captcha Did Not Match!";
                   if($this->variables['error'] =='')
               		$this->variables['error'] = "Added";
                   if(!$this->variables['jquery'])
@@ -268,9 +277,11 @@ class TableClass{
                                     //$child_page->init_variables();
                                     $results = $child_page->mysql->get_all(array(array("field" => "{$this->primary_key}", "operator"=>"=", "argument"=>"{$this->variables[$this->primary_key]}")));
                                     echo $child_page->mysql->last_error;
-                                    foreach($results as $result){
-                                        $child_page->variables[$child_page->primary_key] = $result->{$child_page->primary_key};
-                                        $child_page->action_check('Delete');
+                                    if(isset($results) && sizeof($results)>0){
+                                      foreach($results as $result){
+                                          $child_page->variables[$child_page->primary_key] = $result->{$child_page->primary_key};
+                                          $child_page->action_check('Delete');
+                                      }
                                     }
                               }
                             }
@@ -302,6 +313,11 @@ class TableClass{
 
              case "Update":
              if($this->permissions['edit']){
+               $captcha_check = true;
+               if($this->user->mysql->user_role == 'Public' AND SITE_CAPTCHA )
+                  $captcha_check =  $this->recaptcha_check_answer(SITE_CAPTCHA_PRIVATE,$_SERVER["REMOTE_ADDR"],$_REQUEST["recaptcha_challenge_field"],$_REQUEST["recaptcha_response_field"]);
+
+             if ($captcha_check){
                 $change = '';
                 $this->variables['error'] = '';
              	// Call routine to perform update
@@ -355,6 +371,9 @@ class TableClass{
                    }
 
                 } else {$this->variables['error']="Missing {$this->primary_key} for update";}
+            }
+             else
+                 $this->variables['error'] = "Captcha Did Not Match!";
                if(!$this->variables['jquery'])
                      $this->show_add_edit_form();
                else
@@ -560,6 +579,10 @@ class TableClass{
                     echo "<div class='description'>".$this->fields[$key]['description']."</div>\n";
                 echo "</div>\n";
 
+       }
+       if($this->user->mysql->user_role == 'Public' AND SITE_CAPTCHA){
+             echo "<div style='margin-left:200px' class='field_container'><div id='recaptcha_div'></div></div>\n";
+             echo "<script type='text/javascript'>Recaptcha.create('".SITE_CAPTCHA_PUBLIC."','recaptcha_div', {theme: 'red',callback: Recaptcha.focus_response_field});</script> ";
        }
        if(($this->permissions['edit'] && $this->variables[$this->primary_key] != '' ) || ($this->permissions['add'] && $this->variables[$this->primary_key] == ''  ))
             echo "\t<input name='action' type='submit' value='".($this->variables[$this->primary_key] != '' ? "Update" : "Add")."' />\n"; //If no ID is set this is a new entry
@@ -1476,6 +1499,41 @@ class TableClass{
         }
         echo "</fieldset>\n";
     }
+    function recaptcha_check_answer ($privkey, $remoteip, $challenge, $response)
+    {
+        //discard spam submissions
+        if ($challenge == null || strlen($challenge) == 0 || $response == null || strlen($response) == 0){
+                $this->variables['error'] = 'incorrect-captcha-sol';
+                return false;
+        }
+        $content .= "privatekey=".urlencode( stripslashes($privkey))."&remoteip=".urlencode( stripslashes($remoteip))."&challenge=".urlencode( stripslashes($challenge))."&response=".urlencode( stripslashes($response));
+        $http_request  = "POST /recaptcha/api/verify HTTP/1.0\r\n";
+        $http_request .= "Host: www.google.com\r\n";
+        $http_request .= "Content-Type: application/x-www-form-urlencoded;\r\n";
+        $http_request .= "Content-Length: " . strlen($content) . "\r\n";
+        $http_request .= "User-Agent: reCAPTCHA/PHP\r\n";
+        $http_request .= "\r\n";
+        $http_request .= $content;
+
+        $response = '';
+        if( false == ( $fs = @fsockopen("www.google.com", 80, $errno, $errstr, 10) ) ) {
+                die ('Could not open socket');
+        }
+
+        fwrite($fs, $http_request);
+
+        while ( !feof($fs) )
+                $response .= fgets($fs, 1160); // One TCP-IP packet
+        fclose($fs);
+        $response = explode("\r\n\r\n", $response, 2);
+        $answers = explode ("\n", $response [1]);
+        if (trim ($answers [0]) == 'true')
+                return true;
+        else{
+                $this->variables['error'] = $answers [1];
+                return false;
+        }
+     }
 
 
 }

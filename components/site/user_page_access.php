@@ -246,7 +246,8 @@ class UserPageAccessClass extends TableClass{
                         }
                         else{
                           if(is_file (SITEPATH . "/components/".$path)){ //Prevent an error if a file has been deleted from the server
-                            require_once SITEPATH . "/components/".$path;
+                            if (!class_exists(str_replace("_","",$page_check)."Class"))
+                               require_once SITEPATH . "/components/".$path;
                             eval("\$class_page = new ".str_replace("_","",$page_check)."Class();");
                           }
                         }

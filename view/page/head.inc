@@ -14,5 +14,6 @@
 <script language='JavaScript' src='%TEMPLATEURL%/js/jquery.maskedinput.js' type='text/javascript'></script>
 <script language='JavaScript' src='%TEMPLATEURL%/js/codemirror-compressed.js'></script>
 <script language='JavaScript' src='%TEMPLATEURL%/js/jquery.simplemodal.1.4.4.min.js' type='text/javascript'></script>
+<script language='JavaScript' src='http://www.google.com/recaptcha/api/js/recaptcha_ajax.js'></script> 
 
 

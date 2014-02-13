@@ -35,7 +35,7 @@ require_once SITEPATH . "/components/site/page.php";
               require_once SITEPATH . "/model/menu_class.php";
               require_once SITEPATH . "/model/html_class.php";
               $menu = new MenuClass;
-              $web_page = new HtmlClass($menu->show_menu((isset($user)?$user:NULL)),$menu->show_login((isset($user)?$user->mysql->user_role:NULL)));
+              $web_page = new HtmlClass($menu->show_menu($user),$menu->show_login($user->mysql->user_role));
               $web_page->set_title(SITE_NAME." Database");
               echo "<div class='tab' id='page{$get_page}'>\n";
 

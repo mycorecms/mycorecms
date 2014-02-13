@@ -470,8 +470,8 @@ class UserClass extends TableClass{
             $this->mysql->load();
             //echo $this->mysql->last_error;
             //echo $this->mysql->validation_url."<br />".$cookie_parse[1]."<br />".$cookie_parse[0];
-
-            if($this->mysql->validation_url == $cookie_parse[1] && $this->mysql->last_error == "")
+              //Log a user out if there has been another login unless they are a public user.
+            if(($this->mysql->validation_url == $cookie_parse[1] OR $this->mysql->user_role =='Public') && $this->mysql->last_error == "")
                 return true;
             else{  //If this is a jquery request we need to load the whole page
                 if(isset($_REQUEST['jquery']))

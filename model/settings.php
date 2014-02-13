@@ -40,6 +40,10 @@ define('SITE_TEMPLATE', (isset($settings->mysql->template)?$settings->mysql->tem
 define('SITE_NAME', (isset($settings->mysql->site_name)?$settings->mysql->site_name:ucfirst(str_replace("www.","",$_SERVER['SERVER_NAME']))));
 define('SITE_LOGO', (isset($settings->mysql->logo) && $settings->mysql->logo!=''?ltrim($settings->mysql->logo,"/"):"view/page/images/logo.png"));
 
+define('SITE_GA_KEY', (isset($settings->mysql->analytics_key)?$settings->mysql->analytics_key:""));
+define('SITE_CAPTCHA', (isset($settings->mysql->captcha) ?$settings->mysql->analytics_key:FALSE));
+define('SITE_CAPTCHA_PUBLIC', "6Lf5i-4SAAAAAEMrHaQGBdytwHK3YfkZ0dDMC3sU");
+define('SITE_CAPTCHA_PRIVATE', "6Lf5i-4SAAAAAPRI2kOJunwe2IJYHH4pEvgos00l");
 define("EMAIL_ADDRESS_REGEX", '/^([a-z0-9])(([-a-z0-9._])*([a-z0-9]))*\@([a-z0-9])(([a-z0-9-])*([a-z0-9]))+(\.([a-z0-9])([-a-z0-9_-])?([a-z0-9])+)+$/i');
 //define("EMAIL_ADDRESS_REGEX", "/^\w+([-+.']\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$/");
 define("URL_REGEX", '@^(https?://([-\w\.]+)+(:\d+)?(/([\w/_\.]*(\?\S+)?)?)?)$@i');
