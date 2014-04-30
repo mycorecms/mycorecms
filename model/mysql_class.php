@@ -21,6 +21,7 @@ class MySQLClass extends MySQLDatabase {
 	 "table_id" => array("type" => "int"),
 	 "name" => array("min_length" => 1, "max_length" => 45),
 	 );
+	 public $requirement_check;
     //Create the Mysql DB connection
 	public function __construct(&$dbconnection = null,&$vars = null, $table = null, $primary_key = null,$schema = null ) {
 	   	if( ! isset($this->dbconnection) ) {
@@ -38,6 +39,7 @@ class MySQLClass extends MySQLDatabase {
             $this->primary_key = $primary_key;
        }
        $this->clear();
+       $this->requirement_check = true;
     }
     //Closing the mysql connection can cause conflicts, so we leave blank
 	public function __destruct() {  }
@@ -47,7 +49,9 @@ class MySQLClass extends MySQLDatabase {
 			$this->last_error = "$name does not exist.";
 			return false;
 		}
-		if ( ! $this->validate_single_field($this->fields[$name], $name, $value)  ) return false;
+		if($this->requirement_check){
+		       if ( ! $this->validate_single_field($this->fields[$name], $name, $value)  ) return false;
+		}
 		$this->data[$name] = $value;
 		return true;
 	}
@@ -79,6 +83,7 @@ class MySQLClass extends MySQLDatabase {
 	}
     //Resets all variables to make sure there aren't conflicts when loading a new instance
 	public function clear() {
+          if(!isset($this->data))
 		$this->data = array();
 		foreach ( $this->fields as $field_name => $field_attributes ) {
 			$this->data[$field_name] = ( isset($field_attributes["default"]) ? $field_attributes["default"] : null );
@@ -86,23 +91,30 @@ class MySQLClass extends MySQLDatabase {
 	}
 	// Add or Update
 	public function save() {
-		// Validate fields
-        $new_record = false;
-        $auto_increment = true;
-		foreach ( $this->fields as $field_name => $field_attributes ) {
-			if ( ! $this->validate_single_field($field_attributes, $field_name, $this->data[$field_name])) {
-				if ( $field_name == $this->primary_key ){$this->last_error=''; $new_record = true;}
-				else return false;
-			}
+                //Check if the table exists, if not create it
+		if($this->dbconnection->query("SELECT * FROM {$this->table_name} LIMIT 1") === false)
+                      $this->update_table();
 
-		}
-        if(!$new_record && $this->data[$this->primary_key] > 0){ // Check if the ID has been assigned and it is not currently in the database
+        $new_record = false;
+        if($this->data[$this->primary_key] > 0){ // Check if the ID has been assigned and it is not currently in the database
                 $record_check = $this->get_sql("SELECT * FROM {$this->table_name} WHERE {$this->primary_key} = {$this->data[$this->primary_key]}");
                 if(!isset($record_check[0])){
                     $new_record = true;
                     $auto_increment = false;
                 }
         }
+        else
+             $new_record = true;
+        $auto_increment = true;
+        if($this->requirement_check){
+                // Validate fields
+		foreach ( $this->fields as $field_name => $field_attributes ) {
+			if ( ($field_name != $this->primary_key || !$new_record) && !$this->validate_single_field($field_attributes, $field_name, $this->data[$field_name]))
+				return false;
+		};
+	}
+
+        
 
         //Check if this is an Add
 		if ( $new_record ) {
@@ -111,7 +123,7 @@ class MySQLClass extends MySQLDatabase {
             //echo $sql_query."<br />";                             //If we have an error, update table & re-run query
 			if ( $this->dbconnection->query($sql_query) === false && $this->update_table()  && $this->dbconnection->query($sql_query) === false ) {
 				$this->last_error = "Invalid query: ".(stristr($this->dbconnection->error,'Duplicate Entry')?'Duplicate Entry': $this->dbconnection->error)."\n";
-				return false;
+                                return false;
 			} else {
 				$this->data[$this->primary_key] = $this->dbconnection->insert_id;
 				return true;
@@ -167,11 +179,11 @@ class MySQLClass extends MySQLDatabase {
 		}
         //If nothing is found return false
 		if ( ! ( $row = $result->fetch_assoc() ) ) {
-			$result->free_result();
+			//$result->close();
 			$this->last_error = "Not found";
 			return false;
 		} else {
-			$result->free_result();
+			//$result->close();
 			return $this->assign_data_from_array($row);
 		}
 	}
@@ -223,18 +235,20 @@ class MySQLClass extends MySQLDatabase {
 			return false;
 		}
         if($result->num_rows == 0){  //Table does not exists, create it!
+            //$result->close();
             if($execute_sql = $this->get_create_table_sql()){
                 if ( ( $result = $this->dbconnection->query($execute_sql) ) === false ) {
     			    $this->last_error = "Invalid query: {$this->dbconnection->error}".$execute_sql;
                     return false;
     		    }
+    		//$result->close(); 
                 $this->index_table();
                 return true;
             }
             else
     			return false;
         }
-
+         //$result->close();
         //Check if the coded table matches the MySql table if not alter it!
         if(isset($old_field_names)){
           if($execute_sql = $this->get_alter_table_sql($old_field_names)){
@@ -243,6 +257,7 @@ class MySQLClass extends MySQLDatabase {
                     while(preg_match("/^Unknown column '(?P<field>([^'])*)'/",$this->dbconnection->error,$matches)){
                         $this->add_field($matches['field']);
                         //reexecute sql after adding field
+                        
                         if ( ( $result = $this->dbconnection->query($execute_sql) ) != false )
                             return true;
                     };
@@ -269,6 +284,7 @@ class MySQLClass extends MySQLDatabase {
 			$this->last_error = "Invalid query: {$this->dbconnection->error}";
 			return false;
 		}
+		return true;
 
 	}
     public function index_table(){
@@ -289,7 +305,7 @@ class MySQLClass extends MySQLDatabase {
         while ( $row = $result->fetch_assoc() ) {
                 $results[] = $row['Tables_in_'.$db_name];
         }
-        $result->free_result();
+        //$result->close();
     	return( $results );
 	}
     public function get_columns($table_name,$db_name=SITE_DB_NAME) {
@@ -302,7 +318,7 @@ class MySQLClass extends MySQLDatabase {
         while ( $row = $result->fetch_assoc() ) {
             $results[] = $row;
         }
-        $result->free_result();
+        //$result->close();
     	return( $results );
 
 	}
@@ -338,7 +354,7 @@ class MySQLClass extends MySQLDatabase {
 			}
 		}
 
-		$result->free_result();
+		//$result->close();
 		return( $results );
 	}
 	public function get_counts($criterias = null) {
@@ -354,7 +370,7 @@ class MySQLClass extends MySQLDatabase {
 			return false;
 		}
 		$row = $result->fetch_assoc();
-		$result->free_result();
+		//$result->close();
 		return( $row );
 	}
     public function get_sql_count($sql_query) {
@@ -366,7 +382,7 @@ class MySQLClass extends MySQLDatabase {
                         return false;
 		}
              $count = $result->num_rows;
-             $result->free_result();
+             //$result->close();
             return $count;
         }
 
@@ -384,7 +400,7 @@ class MySQLClass extends MySQLDatabase {
                         return false;
 		}
 		$row = $result->fetch_assoc();
-		$result->free_result();
+		//$result->close();
         //Return the count
 		return( $row['FOUND_ROWS()'] );
 	}
@@ -399,7 +415,7 @@ class MySQLClass extends MySQLDatabase {
         while ( $row = $result->fetch_assoc() ) {
             $results[] = $row;
         }
-        $result->free_result();
+        //$result->close();
     	return( $results );
 
 	}
@@ -413,7 +429,7 @@ class MySQLClass extends MySQLDatabase {
         while ( $row = $result->fetch_field() ) {
             $results[] = $row->name;
         }
-        $result->free_result();
+        //$result->close();
     	return( $results );
 
 	}
@@ -452,7 +468,7 @@ class MySQLClass extends MySQLDatabase {
 				$results[] = array("{$field_name}" => $row["{$field_name}"]);
 		}
 
-		$result->free_result();
+		//$result->close();
 		return( $results );
 	}
 

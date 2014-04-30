@@ -42,7 +42,7 @@ class PageQueryFieldClass extends TableClass{
          //"sub_query_link" => array("min_length" => 0,"type" => "checkbox", "max_length" => 45, "searchable" => TRUE),
     	 );
         $this->mysql= new MySQLClass($this->db->get_db(),$this->fields,$this->table_name,$this->primary_key);
-        $this->init_variables();
+
       }
       else
         die('Missing DB Class');
@@ -66,7 +66,9 @@ class PageQueryFieldClass extends TableClass{
 
     }
     public function action_check($action = NULL){
+
       $this->init_variables();
+
       //Run through any requests
       switch (isset($action) ? $action : $this->variables['action']) {
          case "Get_Type":

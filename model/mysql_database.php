@@ -462,10 +462,14 @@ class MySQLDatabase {
 		}
 		$sql_string = "ALTER TABLE `{$this->table_name}` ";
 		foreach ( $this->fields as $field_name => $field_attributes )
-				$sql_string .= "CHANGE COLUMN ".(isset($old_field_names[$field_name]) ?"`".$old_field_names[$field_name]."`" : "`{$field_name}` " ).$this->lookup_field_sql($field_name).", ";
-        if(isset($old_field_names[$this->primary_key]) && $old_field_names[$this->primary_key] != $this->primary_key ){
-          $sql_string .= " DROP PRIMARY KEY , ADD PRIMARY KEY (`{$this->primary_key}`),DROP INDEX `".$old_field_names[$this->primary_key]."_UNIQUE`,  ADD UNIQUE KEY `{$this->primary_key}_UNIQUE` (`{$this->primary_key}`) ";
-        }
+		      $sql_string .= "CHANGE COLUMN ".(isset($old_field_names[$field_name]) ?"`".$old_field_names[$field_name]."`" : "`{$field_name}` " ).$this->lookup_field_sql($field_name).", ";
+		foreach ( $this->fields as $field_name => $field_attributes ){
+                      if(isset($field_attributes["unique"]) && $field_attributes["unique"] == TRUE )
+		           $sql_string .= " DROP INDEX `".$old_field_names[$field_name]."_UNIQUE`,  ADD UNIQUE KEY `{$field_name}_UNIQUE` (`{$field_name}`) ,";
+               }
+                      if(isset($old_field_names[$this->primary_key]) && $old_field_names[$this->primary_key] != $this->primary_key ){
+                        $sql_string .= " DROP PRIMARY KEY , ADD PRIMARY KEY (`{$this->primary_key}`),DROP INDEX `".$old_field_names[$this->primary_key]."_UNIQUE`,  ADD UNIQUE KEY `{$this->primary_key}_UNIQUE` (`{$this->primary_key}`) ";
+                      }
         $sql_string = rtrim($sql_string, ", ");
         return $sql_string;
 	}
@@ -473,6 +477,10 @@ class MySQLDatabase {
 		$sql_string = "CREATE TABLE `{$this->table_name}` (";
 		foreach ( $this->fields as $field_name => $field_attributes )
 				$sql_string .= $this->lookup_field_sql($field_name).", ";
+		foreach ( $this->fields as $field_name => $field_attributes ){
+                      if(isset($field_attributes["unique"]) && $field_attributes["unique"] == TRUE )
+		           $sql_string .= " UNIQUE KEY `{$field_name}_UNIQUE` (`{$field_name}`) ,";
+               }
         $sql_string .= " PRIMARY KEY (`{$this->primary_key}`), UNIQUE KEY `{$this->primary_key}_UNIQUE` (`{$this->primary_key}`) ";
         $sql_string .= " ) ENGINE=MyISAM AUTO_INCREMENT=1 DEFAULT CHARSET=latin1";
         return $sql_string;

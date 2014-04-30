@@ -33,7 +33,6 @@ class TableClass{
   var $variables;
   var $masks;
   var $printable;
-  var $pdfable;
   var $mapable;
   var $deleteable;
   var $category;
@@ -146,7 +145,7 @@ class TableClass{
            }
 
            //Shows defaults on Add
-           if($this->variables['action'] == 'Add_New' )
+           if($this->variables['action'] == 'Add_New' || ($this->variables['action'] == 'Add' &&  $this->fields[$key]['min_length'] > 0))
                  $this->variables[$key] = ( isset($this->fields[$key]['default']) && $this->variables[$key] == '' ? ($this->fields[$key]['default']=='current_timestamp'?date('Y-m-d'):$this->fields[$key]['default']) : $this->variables[$key]);
           }
         }
@@ -196,8 +195,10 @@ class TableClass{
 
     public function action_check($action = NULL){
         $this->init_variables();
-        switch (isset($action) ? $action : $this->variables['action']) {
+        $this->variables['action'] = (isset($action) && $action!= '' ? $action : $this->variables['action']);
+        switch ($this->variables['action']) {
            case "Add":
+
              if($this->permissions['add']){
                $captcha_check = TRUE;
              if($this->user->mysql->user_role == 'Public' AND SITE_CAPTCHA )
@@ -209,7 +210,7 @@ class TableClass{
               // Call routine to perform add
               	$this->mysql->clear();
               	foreach(array_keys($this->fields) as $key){
-              	  if($this->fields[$key]['type'] != 'file' && $key != $this->primary_key)
+              	  if($this->fields[$key]['type'] != 'file' && ($key != $this->primary_key OR $this->variables[$key] >0))
                       $this->mysql->$key = $this->variables[$key];
                   }
 
@@ -237,7 +238,7 @@ class TableClass{
              }
              else
                  $this->variables['error'] = "Captcha Did Not Match!";
-                  if($this->variables['error'] =='')
+             if($this->variables['error'] =='')
               		$this->variables['error'] = "Added";
                   if(!$this->variables['jquery'])
                       $this->show_add_edit_form();
@@ -625,8 +626,8 @@ class TableClass{
                 echo "<div style='display:block;width:125px'>\n";
                 echo "\t\t\t<input type='checkbox' class='update_checkboxes' style='float:left;'>\n";
                 echo "\t\t\t<select class='bulk' name='bulk' style='float:left'><option></option>\n";
-                foreach($this->multiple_execute as $action)
-                    echo "\t\t\t\t<option>{$action}</option>\n";
+                foreach($this->multiple_execute as $this->variables['action'])
+                    echo "\t\t\t\t<option>{$this->variables['action']}</option>\n";
                 echo "\t\t\t</select>\n";
                 echo "</div>\n";
             }
@@ -849,7 +850,7 @@ class TableClass{
                 $answer .="<input class='checkboxes' type='checkbox' value='{$result->{$this->primary_key}}'>";
               if($this->printable)
                 $answer .= "\t\t<a style='cursor: pointer;' onclick='open_window(\"http://".$_SERVER['SERVER_NAME'] .$_SERVER['PHP_SELF']."?get_page={$this->page_id}&amp;action=Print&amp;{$this->primary_key}={$result->{$this->primary_key}}&amp;jquery=true&amp;rand=".rand()."\",600,700); return false;' href='".$_SERVER['PHP_SELF']."?action=Print&amp;{$this->primary_key}={$result->{$this->primary_key}}&amp;jquery=true&amp;rand=".rand()."' target='_blank'><img src='view/page/images/printer.png' width='20' height='20' alt='Print' title='Print'/></a>\n";
-              if($this->pdfable)
+              if(is_array($this->reports))
                 $answer .= "\t\t<a style='cursor: pointer;' target='_blank' href='http://".$_SERVER['SERVER_NAME'] .$_SERVER['PHP_SELF']."?get_page={$this->page_id}&amp;action=PDF&amp;{$this->primary_key}={$result->{$this->primary_key}}".( isset($this->parent_id) && isset($this->parent_key) ? "&amp;{$this->parent_key}={$this->parent_id}&amp;parent_key={$this->parent_key}" : '')."&amp;jquery=true&amp;rand=".rand()."'><img src='view/page/images/pdf.png' width='20' height='20' alt='PDF' title='PDF'/></a>\n";
               if($this->mapable)
                 $answer .= "\t\t<a href='' onclick='open_window(\"http://".$_SERVER['SERVER_NAME'] .$_SERVER['PHP_SELF']."?get_page={$this->page_id}&amp;action=Map&amp;jquery=true&amp;map_list={$result->{$this->primary_key}}\",500,500); return false;'><img src='view/page/images/google_maps_icon.png' width='20' height='20' alt='Map' title='Map'/></a>\n";
@@ -1252,13 +1253,13 @@ class TableClass{
     }
     public function export_sql(&$results,$report_name=NULL){
     	if ( sizeof($results) > 0 ) {
-    			$delimeter = "\t";
+    			$delimeter = ",";
     			$text_delimeter = '"';
 
     			ob_clean();
                 $filename =  (isset($report_name)?$report_name:"Export")."_".date('m_d_Y');
                 header("Content-Type: application/vnd.ms-excel");
-    			header("Content-Disposition: attachment; filename=\"$filename.txt\"");
+    			header("Content-Disposition: attachment; filename=\"$filename.csv\"");
 
     			$line = "";
     			foreach ( array_keys($results[0]) as $key ) $line .= $text_delimeter . str_replace($delimeter, " ", $key) . $text_delimeter . $delimeter;
@@ -1331,30 +1332,30 @@ class TableClass{
             echo  $file['tmp_name'];
             if($file['tmp_name'] != ""){
                 if(!is_dir(SITEPATH."/uploads/")){
-                    if (!mkdir(SITEPATH."/uploads/", 0777)){
+                    if (!mkdir(SITEPATH."/uploads/", 0754)){
                         $this->variables['error'] = "Error Creating Directory";
                         return false;
                     }
                 }
                 $current_db = $this->mysql->get_sql('SELECT DATABASE() as db');
                 if(!is_dir(SITEPATH."/uploads/{$current_db[0]['db']}/")){
-                    if (!mkdir(SITEPATH."/uploads/{$current_db[0]['db']}/", 0777)){
+                    if (!mkdir(SITEPATH."/uploads/{$current_db[0]['db']}/", 0754)){
                         $this->variables['error'] = "Error Creating Directory";
                         return false;
                     }
                 }
                 if(!is_dir(SITEPATH."/uploads/{$current_db[0]['db']}/{$this->table_name}/")){
-                    if (!mkdir(SITEPATH."/uploads/{$current_db[0]['db']}/{$this->table_name}/", 0777)){
+                    if (!mkdir(SITEPATH."/uploads/{$current_db[0]['db']}/{$this->table_name}/", 0754)){
                         $this->variables['error'] = "Error Creating Directory";
                         return false;
                     }
                 }
                 if(!is_dir(SITEPATH."/uploads/{$current_db[0]['db']}/{$this->table_name}/".$this->variables[$this->primary_key]."/")){
-                        if (!mkdir(SITEPATH."/uploads/{$current_db[0]['db']}/{$this->table_name}/".$this->variables[$this->primary_key]."/", 0777)){
+                        if (!mkdir(SITEPATH."/uploads/{$current_db[0]['db']}/{$this->table_name}/".$this->variables[$this->primary_key]."/", 0754)){
                             $this->variables['error'] = "Error Creating Directory";
                             return false;
                         }
-                        chmod(SITEPATH."/uploads/{$current_db[0]['db']}/{$this->table_name}/".$this->variables[$this->primary_key]."/",0777);
+                        chmod(SITEPATH."/uploads/{$current_db[0]['db']}/{$this->table_name}/".$this->variables[$this->primary_key]."/",0754);
                 }   //Check if we have an image, if so shrink the file size
                 if(in_array($file['type'],array("image/jpeg", "image/gif", "image/png")))
                     $this->resize_img($file['tmp_name'], 1024, 768);

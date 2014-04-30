@@ -54,7 +54,6 @@ class PageQueryClass extends TableClass{
             $this->fields['database']['options'][] = $database['Database'];
         }
         parent::init_variables();
-       //print_r($this->table_permissions);
     }
     public function action_check($action = NULL){
 
@@ -64,8 +63,17 @@ class PageQueryClass extends TableClass{
           case "Add_New":
           case "Edit":
              parent::action_check($action);
-             echo "<script>setTimeout(function(){jQuery('.page_query_sql_query:visible , .page_query_total_query:visible , .page_query_detailed_query:visible').each( function(){CodeMirror.fromTextArea(jQuery(this).get(0),{mode:'text/x-mysql'}).setSize(800, 100)});jQuery('.CodeMirror').each(function(i, el){el.CodeMirror.refresh();})},100);</script>\n";
+             echo "<script>setTimeout(function(){jQuery('.page_query_sql_query:visible , .page_query_total_query:visible , .page_query_detailed_query:visible').each( function(){CodeMirror.fromTextArea(jQuery(this).get(0),{mode:'text/x-mysql'}).setSize(800, 100)});jQuery('.CodeMirror').each(function(i, el){el.CodeMirror.refresh();})},300);</script>\n";
 
+          break;
+          case "Add":
+          case "Update";
+          if($this->mysql->requirement_check)
+                $this->mysql->get_sql($this->variables['sql_query']);
+                if($this->mysql->last_error != '')
+                    echo $this->mysql->last_error;
+                else
+                    parent::action_check($action);
           break;
            default:
               parent::action_check($action);
@@ -130,7 +138,7 @@ class PageQueryClass extends TableClass{
         //$query_page = $this->mysql->get_sql('SELECT * FROM page_query WHERE page_id ='.$page_id);
         $sql_query = html_entity_decode($this->mysql->sql_query,ENT_QUOTES,'UTF-8');
         if($pos = strrpos($sql_query,'WHERE')) //Check if we already have a WHERE
-            $sql_query = substr_replace($sql_query, $search, $pos, strlen('WHERE'));
+            $sql_query = substr_replace($sql_query, $search." AND ", $pos, strlen('WHERE'));
         else if($pos = strrpos($sql_query,'GROUP BY')) //If we don't have a WHERE, check for a Group
             $sql_query = substr_replace($sql_query, $search, $pos, strlen('GROUP BY'));
         else  //If there is no group, just add the search to the end
@@ -139,7 +147,7 @@ class PageQueryClass extends TableClass{
         $total_query = html_entity_decode($this->mysql->total_query,ENT_QUOTES,'UTF-8'); //stripslashes($query_page[0]['total_query']);
         if($total_query != ''){
           if($pos = strrpos($total_query,'WHERE')) //Check if we already have a WHERE
-              $total_query = substr_replace($total_query, $search, $pos, strlen('WHERE'));
+              $total_query = substr_replace($total_query, $search." AND ", $pos, strlen('WHERE'));
           else if($pos = strrpos($total_query,'GROUP BY')) //If we don't have a WHERE, check for a Group
               $total_query = substr_replace($total_query, $search, $pos, strlen('GROUP BY'));
           else  //If there is no group, just add the search to the end
@@ -150,7 +158,7 @@ class PageQueryClass extends TableClass{
         if($detailed_query != ''){
           $search .=  (isset($current_page->variables['row_id'])?"`".$this->mysql->row_id."` = '".$current_page->variables['row_id']."' AND " :"");
           if($pos = strrpos($detailed_query,'WHERE')) //Check if we already have a WHERE
-              $detailed_query = substr_replace($detailed_query, $search, $pos, strlen('WHERE'));
+              $detailed_query = substr_replace($detailed_query, $search." AND ", $pos, strlen('WHERE'));
           else if($pos = strrpos($detailed_query,'GROUP BY')) //If we don't have a WHERE, check for a Group
               $detailed_query = substr_replace($detailed_query, $search, $pos, strlen('GROUP BY'));
           else  //If there is no group, just add the search to the end

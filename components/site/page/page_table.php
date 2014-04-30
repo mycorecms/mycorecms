@@ -32,9 +32,9 @@ class PageTableClass extends TableClass{
     	$this->primary_key = "page_id";
     	$this->fields = array(
          "page_id" => array("type" => "int", "hidden" => TRUE,"min_length" => 1),
-         "table_name" => array("type" => "text","min_length" => 1, "max_length" => 45,"searchable"=>TRUE,"description"=>"Letters and Numbers Only, Keep Concise"),
+         "table_name" => array("type" => "text","min_length" => 1, "max_length" => 45,"searchable"=>TRUE,"description"=>"Letters and Numbers Only"),
          "primary_key" => array("type" => "text","min_length" => 1,"hidden"=>TRUE),
-         "database" => array("type" => "list","min_length" => 1, "max_length" => 45,"options"=>array('mycorecms'),"default"=>SITE_DB_NAME),
+         "database" => array("type" => "list","min_length" => 1, "max_length" => 45,"options"=>array(SITE_DB_NAME),"default"=>SITE_DB_NAME),
          "flat_table" => array("type" => "checkbox","min_length" => 0,"description"=>"Sets a table to have only 1 row"),
     	 );
         $this->mysql = new MySQLClass($this->db->get_db(),$this->fields,$this->table_name,$this->primary_key);
@@ -45,9 +45,10 @@ class PageTableClass extends TableClass{
         die('Missing DB Class');
 	}
     public function action_check($action = NULL){
-
+        
         $this->init_variables();
-        switch (isset($action) ? $action : $this->variables['action']) {
+        $action =(isset($action) && $action!='' ? $action : $this->variables['action']);
+        switch ($action) {
            case "Add":
                 parent::action_check($action);
                 //Check if there was an error and then intialize the table

@@ -550,8 +550,8 @@ $(function() {
    });
    $(document).on('click','.plus', function(event) {
          var page = getCurrentPage(this);
-         var plus_link =  $(this);
-         get_queue($(this).attr('href')+ "&"+ getSearchVars(page) + "&jquery=TRUE", function(msg) {
+         var plus_link =  $(this);        //"&"+ getSearchVars(page)+
+         get_queue($(this).attr('href')+   "&jquery=TRUE", function(msg) {
               if(msg.length > 0){
                     plus_link.parents('tr').after(msg);
                     plus_link.removeClass('plus');

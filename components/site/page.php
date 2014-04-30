@@ -29,8 +29,8 @@ class PageClass extends TableClass{
     	$this->primary_key = "page_id";
     	$this->fields = array(
     	 "page_id" => array("type" => "int", "hidden" => TRUE,"min_length" => 1),
-         "page_type" => array("type" => "text","min_length" => 1, "max_length" => 45,"type"=>"list", "options" => array('Table','Query','Blank'), "searchable" => TRUE),
-         "page_title" => array("type" => "text","min_length" => 1, "max_length" => 45, "searchable" => TRUE,"description"=>"Letters and Numbers Only, Keep Concise"),
+         "page_type" => array("type" => "list","min_length" => 1, "max_length" => 45, "options" => array('Table','Query','Blank'), "searchable" => TRUE),
+         "page_title" => array("type" => "text","min_length" => 1, "max_length" => 45, "unique" => TRUE, "searchable" => TRUE,"description"=>"Letters and Numbers Only"),
          "section"=>array("type"=>"list+other","min_length" => 1, "max_length" => 45, "searchable"=>TRUE, "options"=>array('site')),
          "page_css" => array("type" => "textarea","min_length" => 0, "max_length" => 2000,"hidden"=>TRUE),
          "page_js" => array("type" => "textarea","min_length" => 0, "max_length" => 2000,"hidden"=>TRUE),
@@ -120,10 +120,15 @@ class PageClass extends TableClass{
                 if($this->mysql->last_error == ''){
                     eval("require_once 'page/page_".strtolower($this->mysql->page_type).".php';");
                     eval("\$class_page = new Page".$this->mysql->page_type."Class();");
-                    $class_page->mysql->update_table();
+
+
+                    $_REQUEST['primary_key'] = strtolower(str_replace(" ","_",$this->mysql->page_title))."_id";
+                    $_REQUEST['table_name'] = strtolower(str_replace(" ","_",$this->mysql->page_title));
+                    $_REQUEST['page_id'] = $this->mysql->page_id;
                     //Create an instance of the new sub-page
-                    $this->mysql->set_sql("INSERT INTO `{$class_page->table_name}` (page_id".($this->mysql->page_type=='Table'?",table_name,primary_key":"").") VALUES ({$this->mysql->page_id}".($this->mysql->page_type=='Table'?",'".strtolower(str_replace(" ","_",$this->mysql->page_title))."','".strtolower(str_replace(" ","_",$this->mysql->page_title))."_id'":"").")");
-                   echo $this->mysql->last_error;
+                    $class_page->user = $this->user;
+                    $class_page->mysql->requirement_check = false;
+                    $class_page->action_check($action);
                 }
           break;
           case "Update":
