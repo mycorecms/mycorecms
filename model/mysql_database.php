@@ -48,15 +48,12 @@ class MySQLDatabase {
     public function get_db() { return $this->dbconnection; }
 
 	public function escape_string($src) {
-	  if(is_array($src)){
-	  print_r(debug_backtrace());
-      print_r($src);}
 		if ( isset($this->dbconnection) )
-            return $this->dbconnection->real_escape_string(preg_replace("/[^\x9\xA\xD\x20-\x7F]/", "", html_entity_decode($src,ENT_QUOTES,'UTF-8')));
+        		return $this->dbconnection->real_escape_string(preg_replace("/[^\x9\xA\xD\x20-\x7F]/", "", html_entity_decode($src,ENT_QUOTES,'UTF-8')));
 		else return false;
 	}
     public function salt_password($password,$salt){
-        return SHA1('Z1a7C31b'.$this->escape_string($password).($salt));
+        return hash('sha512','Z1a7C31b'.$this->escape_string($password).$this->escape_string($salt));
     }
 
 	public function validate_single_field($validation_criteria, $field_name, $field_value) {
@@ -160,6 +157,7 @@ class MySQLDatabase {
 					        $tmp .= " `{$field_name}`='". $this->salt_password($this->data[$field_name],$this->data['login']). "',\n";
 					break;
                     case "timestamp":
+                    case "date":
 					    $tmp .= " `{$field_name}`='" .($this->data[$field_name] != ''?date('Y-m-d H:i:s',strtotime($this->data[$field_name])):''). "',\n";
 					break;
 					default:
@@ -205,6 +203,7 @@ class MySQLDatabase {
 					    $values .= "'" .$this->salt_password($this->data[$field_name],$this->data['login']). "',\n";
 					break;
                     case "timestamp":
+                    case "date":
 					    $values .= "'" .($this->data[$field_name] != ''?date('Y-m-d H:i:s',strtotime($this->data[$field_name])):''). "',\n";
 					break;
 					default:
@@ -359,9 +358,11 @@ class MySQLDatabase {
 					break;
                  case "timestamp":
                  case "datetime":
-                 case "date":
                  case "time":
                     $type_match = 'timestamp';
+                 break;
+                 case "date":
+                    $type_match = 'date';
                  break;
                  case "double":
                  case "float":
@@ -425,6 +426,7 @@ class MySQLDatabase {
                  case 'checkbox':
 					$length = 1;
 					break;
+                 case 'text':
                  case 'url':
                  case 'file':
 					$length = 255;
@@ -513,6 +515,9 @@ class MySQLDatabase {
                  case "timestamp":
                     $sql_string .= " timestamp NULL default 0 ";
                  break;
+                 case "date":
+                    $sql_string .= " date NULL default 0 ";
+                 break;
                  case "currency":
 				 case "float":
                  case "double":
@@ -528,6 +533,7 @@ class MySQLDatabase {
 					$sql_string .= " TINYINT(1) NULL ".(isset($this->fields[$field]['default'])? "default 1" :"default 0");
 					break;
                  case "file":
+                 case "password":
 					$sql_string .= " varchar(255) NULL ";
 					break;
 				 default:
@@ -555,6 +561,7 @@ class MySQLDatabase {
 					$this->data[$field_name] = (int)$field_value;
 					break;
                  case "timestamp":
+                 case "date":
                     $this->data[$field_name] =  ( strtotime($field_value) > 0 ? date('Y-m-d', strtotime($field_value)) : "0000-00-00");
                  break;
 				 case "float":
@@ -569,7 +576,7 @@ class MySQLDatabase {
 					$this->data[$field_name] = (bool)$field_value;
 					break;
 				 default:                                                                                 //htmlentities(html_entity_decode(stripslashes ($field_value),ENT_QUOTES,'UTF-8'),ENT_QUOTES,'UTF-8')
-					$this->data[$field_name] = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', htmlentities(stripslashes ($field_value),ENT_QUOTES,'UTF-8'));
+					$this->data[$field_name] = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', htmlentities($field_value,ENT_QUOTES,'UTF-8'));
 					break;
 				}
 			}

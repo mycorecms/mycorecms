@@ -30,12 +30,12 @@ class PageClass extends TableClass{
     	$this->fields = array(
     	 "page_id" => array("type" => "int", "hidden" => TRUE,"min_length" => 1),
          "page_type" => array("type" => "list","min_length" => 1, "max_length" => 45, "options" => array('Table','Query','Blank'), "searchable" => TRUE),
-         "page_title" => array("type" => "text","min_length" => 1, "max_length" => 45, "unique" => TRUE, "searchable" => TRUE,"description"=>"Letters and Numbers Only"),
-         "section"=>array("type"=>"list+other","min_length" => 1, "max_length" => 45, "searchable"=>TRUE, "options"=>array('site')),
+         "page_title" => array("type" => "text","min_length" => 1, "max_length" => 45,  "searchable" => TRUE,"description"=>"Letters and Numbers Only"),
+         "section"=>array("type"=>"auto","min_length" => 1, "max_length" => 45, "searchable"=>TRUE, "options"=>array('site')),
          "page_css" => array("type" => "textarea","min_length" => 0, "max_length" => 2000,"hidden"=>TRUE),
          "page_js" => array("type" => "textarea","min_length" => 0, "max_length" => 2000,"hidden"=>TRUE),
-         "parent_page_id" => array("type" => "table_link", "lookup_table"=>"page", "lookup_field"=>"page_title","lookup_id"=>"page_id","description"=>"Links this page as a tab inside the selected page."),
-         //"priority" => array("type"=>"range","min_length" => 0, "options" => array("1","100") ),
+         "parent_page_id" => array("type" => "table_link", "lookup_table"=>"page", "lookup_field"=>"section,page_title","lookup_id"=>"page_id","WHERE"=>"ORDER BY section,page_title","description"=>"Links this page as a tab inside the selected page."),
+         "priority" => array("type"=>"range","min_length" => 0, "default"=>1,"options" => array("1","100") ),
          "custom_code" => array("type"=>"textarea","min_length" => 0),
          "hidden" => array("type"=>"checkbox","min_length" => 0 ),
     	 );
@@ -66,7 +66,7 @@ class PageClass extends TableClass{
         //Don't let page type be changed once set.
         $this->fields['page_type']['hidden'] = TRUE;
       }
-      $this->fields['parent_page_id']['where'] = "WHERE page_id != {$this->mysql->page_id} ORDER BY page_title";
+      $this->fields['parent_page_id']['where'] = "WHERE page_id != {$this->mysql->page_id} ORDER BY section,page_title";
     }
     //Lookup any existing sections in both the page database + static folders
     $sections = $this->mysql->get_sql("SELECT GROUP_CONCAT(DISTINCT section) as section FROM page WHERE hidden != 1");
@@ -115,6 +115,14 @@ class PageClass extends TableClass{
      //check if this is a properites page, if so update the appropriate page
         switch (isset($action) ? $action : $this->variables['action']) {
           case "Add":
+          if($this->user->mysql->add){
+              /*if($this->variables['custom_code'] != ''){
+                   
+                 $string = escapeshellcmd($this->variables['custom_code']);
+                exec("php -r \"<?php $string ?>\"",$output,$exit);
+                if($exit!=0)
+                    $this->mysql->last_error = $output; 
+              }                             */    
                 parent::action_check($action);
                 //Check if there was an error and then intialize the table
                 if($this->mysql->last_error == ''){
@@ -130,9 +138,25 @@ class PageClass extends TableClass{
                     $class_page->mysql->requirement_check = false;
                     $class_page->action_check($action);
                 }
+          }
           break;
           case "Update":
+          if($this->permissions['edit']){
+            if($this->variables['custom_code'] != ''){
 
+              $string ="require_once 'page/page_".strtolower($this->variables['page_type']).".php';";
+              $string .="\$class_page = new Page".$this->variables['page_type']."Class();";
+              //eval("class ".$this->mysql->database.$this->mysql->table_name."Class EXTENDS TableClass { ".html_entity_decode($custom_code,ENT_QUOTES,'UTF-8')." };");
+              $string .="\$current_page = \$class_page->load({$this->variables[$this->primary_key]},'".html_entity_decode($this->variables['custom_code'],ENT_QUOTES,'UTF-8')."');";
+                 //$string = escapeshellcmd(str_replace('\\','',$string));
+                exec("php -r '{$string}' 2>&1",$output,$exit);
+
+                if($exit!=0){
+                    //echo $string;
+                    //$this->mysql->last_error = 'Parse Error('.$exit."): ".$output[0];
+                }
+
+            }
             $this->mysql->{$this->primary_key} = $this->variables[$this->primary_key];
             $this->mysql->load();
             $old_title = $this->mysql->page_title;
@@ -141,6 +165,7 @@ class PageClass extends TableClass{
             if($this->mysql->last_error =='' && $this->variables['page_title'] != $old_title)
               $this->mysql->set_sql("UPDATE user_page_access SET page = REPLACE(page,'{$old_title}.{$this->mysql->page_id}','{$this->mysql->page_title}.{$this->mysql->page_id}')");
             //echo $this->mysql->last_error;
+          }
           break;
           case "Delete":
            $this->mysql->page_id =  $this->variables['page_id'];
@@ -213,7 +238,7 @@ class PageClass extends TableClass{
           $current_page->db = $this->db;
           $current_page->page_id = $page_id;
           $current_page->page_title = $this->mysql->page_title;
-          $children = $this->mysql->get_sql('SELECT page_title,page_id FROM page WHERE parent_page_id = '.$page_id);
+          $children = $this->mysql->get_sql('SELECT page_title,page_id FROM page WHERE parent_page_id = '.$page_id." ORDER BY priority,page_id ASC");
           foreach($children as $child)
               $current_page->children[ucfirst($child['page_title'])] = array("action"=>"","get_page"=>"{$child['page_id']}","table_name"=>$class_page->table_name);
         }
@@ -221,8 +246,9 @@ class PageClass extends TableClass{
        }
     }
     function show_results(){
+      if(!isset($_REQUEST['action']) OR $_REQUEST['action'] != "Get_results"){
         echo "<div style='font-weight:bold;text-align:center'>";
-        /*$current_dbs = $this->mysql->get_sql("SELECT GROUP_CONCAT( DISTINCT `database` SEPARATOR \"','\") as dbs FROM `page_table`");
+        $current_dbs = $this->mysql->get_sql("SELECT GROUP_CONCAT( DISTINCT `database` SEPARATOR \"','\") as dbs FROM `page_table`");
         $databases = $this->mysql->get_sql("SHOW databases WHERE `database` NOT IN (".(isset($current_dbs[0])?"'".$current_dbs[0]['dbs']."',":"")."'site','information_schema','apsc','atmail','horde','mysql','psa') AND `database` NOT LIKE '%phpmyadmin%'");
 
         if(isset($databases[0])){
@@ -233,23 +259,24 @@ class PageClass extends TableClass{
                 echo "\t\t<option>{$database['Database']}</option>\n";
           }
           echo "\t</select><br />\n";
-        }   */
+        }
         echo "*NOTE: Deleting a page of type table also deletes the table with all it's data.</div>";
+      }  
         parent::show_results();
         
     }
     public function auto_populate($db_name){
       //Check if there are any tables not already present in page list
-        $current_tables = $this->mysql->get_sql("SELECT GROUP_CONCAT( DISTINCT table_name SEPARATOR \"','\") as tables FROM `page_table`");
-        if(isset($current_tables[0]['tables']))  //only get tables that aren't already in the database
-            $table_list = $this->mysql->lookup_tables($db_name,"'".$current_tables[0]['tables']."'");
+        $current_tables = $this->mysql->get_sql("SELECT GROUP_CONCAT( DISTINCT table_name SEPARATOR \"','\") as tables FROM `page_table` WHERE `database` LIKE '{$db_name}'");
+                                                         //only get tables that aren't already in the database
+        $table_list = $this->mysql->lookup_tables($db_name,"'".(isset($current_tables[0]['tables'])?$current_tables[0]['tables']:"")."'");
         echo $this->mysql->last_error;
         //Add any tables in database that are not already entered
         foreach($table_list as $a_table){
             //Locate Primary ID
-            $this->mysql->set_sql("INSERT INTO page (page_title,page_type,secure_page,section) VALUES ('{$a_table}','Table',TRUE,'{$db_name}')");
+            $this->mysql->set_sql("INSERT INTO page (page_title,page_type,section) VALUES ('{$a_table}','Table','{$db_name}')");
             echo $this->mysql->last_error;
-            $new_row = $this->mysql->get_sql("SELECT {$this->primary_key} FROM page WHERE page_title= '{$a_table}'");
+            $new_row = $this->mysql->get_sql("SELECT {$this->primary_key} FROM page WHERE page_title= '{$a_table}' ORDER BY page_id DESC");
             $new_page_id = $new_row[0][$this->primary_key];
 
             $column_list = $this->mysql->get_columns($a_table,$db_name);

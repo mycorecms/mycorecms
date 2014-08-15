@@ -58,7 +58,7 @@ class PageQueryFieldClass extends TableClass{
             }
         }
         }
-        if($this->variables['table_name'] != '')
+        if(isset($this->variables['table_name']) && $this->variables['table_name'] != '')
                 $this->fields['table_field_id']['where'] = "  INNER JOIN page_table ON page_table.page_id = page_table_field.page_id WHERE table_name LIKE '%".$this->variables['table_name']."%' ORDER BY field_name";
 
         parent::init_variables();

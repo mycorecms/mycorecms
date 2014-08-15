@@ -21,7 +21,7 @@ define( 'SITEPATH', str_replace('/model','',dirname(__FILE__)) );
 define('SITE_DB_HOST', 'localhost');
 define('SITE_DB_USER', 'mycorecms');
 define('SITE_DB_PASS', 'mnKY4spnk');
-define('SITE_DB_NAME', 'mycorecms');
+define('SITE_DB_NAME', 'led');
 
 test_connection(); 
 
@@ -56,14 +56,15 @@ date_default_timezone_set('UTC');
 function test_connection(){
  $mysqli = @new mysqli(SITE_DB_HOST, SITE_DB_USER, SITE_DB_PASS, SITE_DB_NAME);
   if ($mysqli->connect_error) {
-      If(isset($_REQUEST['username']) && isset($_REQUEST['password']) && isset($_REQUEST['database'])){
-           $mysqli = @new mysqli(SITE_DB_HOST, $_REQUEST['username'], $_REQUEST['password']);
+      If(isset($_REQUEST['username']) && isset($_REQUEST['password'])  && isset($_REQUEST['host']) && isset($_REQUEST['database'])){
+           $mysqli = @new mysqli($_REQUEST['host'], $_REQUEST['username'], $_REQUEST['password']);
            if (!$mysqli->connect_error)
               $mysqli->query('CREATE DATABASE IF NOT EXISTS '.$_REQUEST['database']);
-           $mysqli = @new mysqli(SITE_DB_HOST, $_REQUEST['username'], $_REQUEST['password'],$_REQUEST['database']);
+           $mysqli = @new mysqli($_REQUEST['host'], $_REQUEST['username'], $_REQUEST['password'],$_REQUEST['database']);
            if (!$mysqli->connect_error){//If the connection works, save the changes
                 $buffer = file_get_contents(__FILE__); //Get the current file
 		$buffer = preg_replace("/define\('SITE_DB_USER', '.*'\);/i", "define('SITE_DB_USER', '".$_REQUEST['username']."');", $buffer,1);
+		$buffer = preg_replace("/define\('SITE_DB_HOST', '.*'\);/i", "define('SITE_DB_HOST', '".$_REQUEST['host']."');", $buffer,1);
 		$buffer = preg_replace("/define\('SITE_DB_PASS', '.*'\);/i", "define('SITE_DB_PASS', '".$_REQUEST['password']."');", $buffer,1);
 		$buffer = preg_replace("/define\('SITE_DB_NAME', '.*'\);/i", "define('SITE_DB_NAME', '".$_REQUEST['database']."');", $buffer,1);
 		file_put_contents(__FILE__,$buffer);
@@ -89,6 +90,7 @@ function test_connection(){
       <p style='font-weight:bold;text-align:center;'>Please enter your mysql username, password, and default database name.</p>
       <form method="post" action="<?php echo $_SERVER['PHP_SELF']?>?get_page=-3" name="loginform">
           <table width="300" border="0" align="center" cellpadding="2" cellspacing="0">
+          <tr><td><strong>Host</strong></td><td><input name='host' type='text' value ='<?php echo SITE_DB_HOST ?>'/></td></tr>
           <tr><td><strong>Username</strong></td><td><input name='username' type='text'/></td></tr>
           <tr><td><strong>Password</strong></td><td><input name='password' type='password'/></td></tr>
           <tr><td><strong>Database Name</strong></td><td><input name='database' type='text' value ='<?php echo SITE_DB_NAME ?>'/></td></tr>

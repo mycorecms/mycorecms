@@ -68,8 +68,11 @@ class PageQueryClass extends TableClass{
           break;
           case "Add":
           case "Update";
-          if($this->mysql->requirement_check)
-                $this->mysql->get_sql($this->variables['sql_query']);
+          //if($this->mysql->requirement_check)
+
+                $this->mysql->get_db()->select_db($this->variables['database']);
+                $results = $this->mysql->get_sql($this->variables['sql_query']);
+                $this->mysql->get_db()->select_db(SITE_DB_NAME);
                 if($this->mysql->last_error != '')
                     echo $this->mysql->last_error;
                 else
@@ -91,7 +94,7 @@ class PageQueryClass extends TableClass{
         $this->mysql->load();
         $class_name= str_replace(" ","",$this->mysql->query_name);
         if(class_exists("Query".$class_name."Class") != true)
-            eval("class Query".$class_name."Class EXTENDS QueryClass { ".$custom_code." };");
+            eval("class Query".$class_name."Class EXTENDS QueryClass { ".html_entity_decode($custom_code,ENT_QUOTES,'UTF-8')." };");
         eval("\$current_page = new Query".$class_name."Class();");
         $current_page->mysql = new MySQLClass(new mysqli(SITE_DB_HOST, SITE_DB_USER, SITE_DB_PASS, $this->mysql->database));
         $current_page->init_variables();

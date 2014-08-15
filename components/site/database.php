@@ -32,7 +32,7 @@ public function __construct() {
 
 	}
   public function init_variables(){
-     $this->sql_query = (isset($_REQUEST['query'])?$_REQUEST['query']:"SHOW TABLES");
+     $this->sql_query = (isset($_REQUEST['query']) && $_REQUEST['query'] != ''?$_REQUEST['query']:"SHOW TABLES");
      $this->variables['database'] = (isset($this->variables['database'])?$this->variables['database']:SITE_DB_NAME);
      $this->db->get_db()->select_db($this->variables['database']);
      $this->row_id = "Tables_in_{$this->variables['database']}";
@@ -43,9 +43,10 @@ public function __construct() {
   }
   public function action_check($action = NULL){
         switch (isset($action) ? $action : $this->variables['action']) {
+          case "Execute":
           case "Get_results":
                   
-                 if($this->strposa($_REQUEST['query'],array('Update','Delete','Truncate')) ===False){
+                 if(!isset($_REQUEST['query']) || $this->strposa($_REQUEST['query'],array('Update','Delete','Truncate')) ===False){
                   parent::action_check($action);
                  }
 
@@ -56,14 +57,13 @@ public function __construct() {
                         //$results = $this->mysql->get_sql("mysql_affected_rows()");
                         $found = $this->mysql->get_sql("SELECT FOUND_ROWS()");
                         $affected = "Affected Rows:".mysqli_affected_rows($this->mysql->get_db());
-                        
-                        
+
                         $html[] = "Found Rows:".$found[0]['found_rows']." ".$affected;
                     }
                     else
                           $html[] =$this->mysql->last_error;
                     $html[] = $total_results;
-                  //$html[] = $this->mysql->last_error;
+
                   echo json_encode($html);
                   exit;
                 }
@@ -100,7 +100,7 @@ public function __construct() {
 ?>
       <fieldset>
       <legend>Filters</legend>
-  	<form class="query_form default_form" action="<?php echo $_SERVER['PHP_SELF']."?get_page={$this->page_id}" ?>" method="post">
+  	<form class="default_form" action="<?php echo $_SERVER['PHP_SELF']."?get_page={$this->page_id}" ?>" method="post">
 
         <label for='status'>Database</label>
         <select class="database Filter"  name="database">
@@ -113,23 +113,12 @@ public function __construct() {
         <br/>
   	<label for="mysql_query">MySQL Query:</label>
         <textarea class="mysql_query Filter" name="query" rows="4" style='width:800px'></textarea>
-        <input class="query_execute" name="action" value="Execute" type="submit" onclick =''>
+        <input name="action" value="Get_results" type="submit" onclick =''>
     </form>
       </fieldset>
       <br/>
-      <script>setTimeout(function(){jQuery('.mysql_query:visible').each( function(){CodeMirror.fromTextArea(jQuery(this).get(0),{mode:'text/x-mysql'}).setSize(800, 100)});  },100);
-      
-      jQuery(".query_form").submit(function(event){
 
-              var page = getCurrentPage(this);
-              page.find('.CodeMirror').each(function(i, el){el.CodeMirror.save();})
-              var search = getSearchVars(page);
-              do_search(page,search);
-              event.preventDefault();
-              event.stopPropagation();
-              
-      });
-      </script>
+      <script>setTimeout(function(){jQuery('.mysql_query:visible').each( function(){CodeMirror.fromTextArea(jQuery(this).get(0),{mode:'text/x-mysql'}).setSize(800, 100)});jQuery('.CodeMirror').each(function(i, el){el.CodeMirror.refresh();})},100);</script>
   <?php
   }
 

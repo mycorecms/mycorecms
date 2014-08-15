@@ -35,9 +35,10 @@ class UserClass extends TableClass{
          "last_name" => array("type"=>"text","min_length" => 1, "max_length" => 40, 'searchable'=>TRUE),
          "login" => array("type"=>"text","min_length" => 1, "max_length" => 40, 'searchable'=>TRUE),
          "email" => array("type"=>"email","min_length" => 1, "max_length" => 80, 'searchable'=>TRUE),
-         "password" => array("type"=>"password", "min_length" => 1, "max_length" => 40),
+         "password" => array("type"=>"password", "min_length" => 1, "max_length" => 255),
          "validation_url" => array("type"=>"text","min_length" => 0, "max_length" => 40,"hidden"=>TRUE),
          "user_role" => array("type"=>"distinct_list","lookup_table"=>"user_role","lookup_field"=>"role","lookup_id"=>"role","min_length" => 1, "max_length" => 20, 'searchable'=>TRUE),
+         "project_id" => array("type"=>"text","min_length" => 0, "max_length" => 55),
          "last_login" => array("type"=>"timestamp","min_length" => 0, "max_length" => 40,"hidden"=>TRUE),
          "disable" => array("type"=>"checkbox","min_length" => 0, "max_length" => 4),
          "add" => array("type"=>"checkbox","min_length" => 0, "max_length" => 4,"default"=>1),
@@ -61,8 +62,8 @@ class UserClass extends TableClass{
        $this->init_variables();
         switch (isset($action) ? $action : ( isset($_REQUEST["action"])  ? $_REQUEST["action"] : "")) {
          case "logout":
-            setcookie("mycorecms_user", "",time()-60*60*24*100);
-            //unset($_COOKIE["mycorecms_user"]);
+            setcookie("site_user", "",time()-60*60*24*100);
+            //unset($_COOKIE["site_user"]);
             //session_unset();
             //session_destroy();
             header('Location: http://'.$_SERVER['SERVER_NAME']);
@@ -121,8 +122,8 @@ class UserClass extends TableClass{
                                 exit();
                             }
                             else{
-                                //$_SESSION["mycorecms_user"] =  $this->mysql->user_id ."|". $this->mysql->validation_url ."|". $this->mysql->first_name ." ". $this->mysql->last_name;
-                                setcookie("mycorecms_user",$this->mysql->user_id ."|". $this->mysql->validation_url ."|". $this->mysql->first_name ." ". $this->mysql->last_name );
+                                //$_SESSION["site_user"] =  $this->mysql->user_id ."|". $this->mysql->validation_url ."|". $this->mysql->first_name ." ". $this->mysql->last_name;
+                                setcookie("site_user",$this->mysql->user_id ."|". $this->mysql->validation_url ."|". $this->mysql->first_name ." ". $this->mysql->last_name );
                                 header('Location: '.$_SERVER['PHP_SELF']);
                             }
                         }
@@ -232,7 +233,7 @@ class UserClass extends TableClass{
                         $user_page_access->mysql->updated_by ='Admin';
                         $user_page_access->mysql->save();
                         echo $user_page_access->mysql->last_error;
-                        setcookie("mycorecms_user",$this->mysql->user_id ."|". $this->mysql->validation_url ."|". $this->mysql->first_name ." ". $this->mysql->last_name);
+                        setcookie("site_user",$this->mysql->user_id ."|". $this->mysql->validation_url ."|". $this->mysql->first_name ." ". $this->mysql->last_name);
                         header('Location: '.$_SERVER['PHP_SELF']);
                     }
                     else
@@ -421,10 +422,16 @@ class UserClass extends TableClass{
                     //Will just return 1 user
                     foreach($results as $result){
                       $this->mysql->user_id = $result->user_id;
-                      $this->mysql->load();                         //Check if the account has tried to login too many times in the past 15 minutes
+                      $this->mysql->load();              //Upgrade password encryption
+                      if($this->mysql->password == SHA1('Z1a7C31b'.$this->mysql->escape_string($_REQUEST['pass']).$login)){
+                          $this->mysql->password = $_REQUEST['pass'];
+                          $this->mysql->save();
+                          $this->mysql->load();
+                      }
+                      //Check if the account has tried to login too many times in the past 15 minutes
                       if($this->mysql->password == $pass && ($this->mysql->login_attempt < 5 || (strtotime($this->mysql->last_login)+(15*60) < time()) )){
                         //Store random value for cookie
-                        if($this->mysql->user_role != 'Public')
+
                             $this->mysql->validation_url = SHA1(rand());
                         $this->mysql->last_login = date('Y-m-d h:m:s');
                         $this->mysql->login_attempt = 0;
@@ -437,7 +444,7 @@ class UserClass extends TableClass{
                         else{
                           //Set sessions variables so we can lookup later
                           //$_SESSION["site_user"] =  $this->mysql->user_id ."|". $this->mysql->validation_url ."|". $this->mysql->first_name ." ". $this->mysql->last_name;
-                          setcookie("mycorecms_user",$this->mysql->user_id ."|". $this->mysql->validation_url ."|". $this->mysql->first_name ." ". $this->mysql->last_name);
+                          setcookie("site_user",$this->mysql->user_id ."|". $this->mysql->validation_url ."|". $this->mysql->first_name ." ". $this->mysql->last_name);
                           header('Location: '.$_SERVER['PHP_SELF']);
                           return true;
                         }
@@ -461,8 +468,8 @@ class UserClass extends TableClass{
                        return false;
                  }
        }
-       else if (isset($_COOKIE['mycorecms_user']) ){
-            $cookie_parse = explode("|",$_COOKIE['mycorecms_user']);
+       else if (isset($_COOKIE['site_user']) ){
+            $cookie_parse = explode("|",$_COOKIE['site_user']);
             //validate the user to prevent cookie hacking
 
             $this->mysql->clear();
@@ -471,7 +478,7 @@ class UserClass extends TableClass{
             //echo $this->mysql->last_error;
             //echo $this->mysql->validation_url."<br />".$cookie_parse[1]."<br />".$cookie_parse[0];
               //Log a user out if there has been another login unless they are a public user.
-            if(($this->mysql->validation_url == $cookie_parse[1] OR $this->mysql->user_role =='Public') && $this->mysql->last_error == "")
+            if(($this->mysql->validation_url == $cookie_parse[1] ) && $this->mysql->last_error == "")
                 return true;
             else{  //If this is a jquery request we need to load the whole page
                 if(isset($_REQUEST['jquery']))
@@ -484,49 +491,10 @@ class UserClass extends TableClass{
 
         }
         else{
-            //Check if there is a public user in the system, if not create one
-            $user_count = $this->mysql->get_sql("SELECT count(*) as count FROM user WHERE user_role = 'Public'");
-            if($user_count[0]['count'] ==0){
-                $this->variables['error'] = '';
-                  $this->variables['first_name'] = "Public";
-                  $this->variables['last_name'] = "User";
-                  $this->variables['login'] = "Public";
-                  $this->variables['email'] = "None@example.com";
-                  $this->variables['user_role'] = "Public";
-                  $this->variables['password'] = $this->createRandomPassword();
-                  $this->variables['validation_url'] =SHA1(rand());
-                  $this->variables['add'] = FALSE;
-                  $this->variables['edit'] = FALSE;
-                  $this->variables['download'] = FALSE;
-                	$this->mysql->clear();
-                	foreach(array_keys($this->fields) as $key){
-                	  if($this->fields[$key]['type'] != 'file' && $key != $this->primary_key)
-                        $this->mysql->$key = $this->variables[$key];
-                    }
-                	if($this->mysql->last_error != '' OR !$this->mysql->save()){
-                		$this->variables['error']= $this->mysql->last_error;
-                    }
-                	else{
-                	  $this->mysql->last_error = '';//reset error from primary_id being empty
-                      $this->mysql->load();
-                    }
-                    if($this->variables['error'] ==''){
-                        require_once('user_role.php');
-                        $user_role = new UserRoleClass;
-                        //$user_role->mysql->update_table(); //Initialize Table
-                        $user_role->mysql->role ='Public';
-                        $user_role->mysql->updated_by ='Public User';
-                        $user_role->mysql->save();
-
-                    }
-            }
-            $public_user = $this->mysql->get_sql("SELECT * FROM user WHERE user_role = 'Public'");
-            setcookie("mycorecms_user",$public_user[0]['user_id'] ."|". $public_user[0]['validation_url'] ."|". $public_user[0]['first_name'] ." ". $public_user[0]['last_name']);
-            $this->mysql->clear();
-            $this->mysql->user_id = $public_user[0]['user_id'];
-            $this->mysql->load();
-            //header('Location: http://'.$_SERVER['SERVER_NAME']);
-            return true;
+            //If this is a jquery request we need to load the whole page
+                if(isset($_REQUEST['jquery']))
+                    $this->action_check('logout');
+            return false;
 
         }
 

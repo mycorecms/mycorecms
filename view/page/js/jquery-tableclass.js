@@ -40,7 +40,7 @@ $(function() {
         $('.loading').addClass('hidden');
     });
   //Since using a class for a date field doesn't auto assign, we assign when a datepickerclass input field is clicked
-    $(document).on('click','.datepickerclass', function() {
+    $(document).on('click keyup touchstart tap','.datepickerclass', function() {
         $('.datepickerclass').datepick({dateFormat: 'yyyy-mm-dd' ,
           onSelect: function(dateText) {
             if($(this).attr('class').search('Filter') != -1){
@@ -257,6 +257,7 @@ $(function() {
            var ascending = (page.find('.sort').attr('ascending') == 1?0:1);
            var header = $(this).attr('value');
 
+
            //Update the html ascending field
            page.find('.sort').attr('ascending',ascending);
             //Gather Search Criteria
@@ -271,7 +272,6 @@ $(function() {
                   //Reset all classes for filter update
                    page.find('.header').removeClass('headerSortDown headerSortUp');
                    //Update the html sort field
-                   page.find('.sort').val($(this).attr('value'));
                    if(ascending == 0)
                         page.find("th[value='"+header+"']").addClass("headerSortDown");
                    else
@@ -290,10 +290,12 @@ $(function() {
    $(document).on('keyup change','.Filter', function(event) {
      if((event.type == 'change' && $(this).attr('type') != 'text') || event.type =='keyup'){
          var page = getCurrentPage(this);
+         var fieldname =  $(this).attr('name');
          //Gather Search Criteria
          var search = getSearchVars(page) + "rpp=&advanced_search=" + page.find('.advanced_search').val()+"&"+ page.find('select.rpp').val() +"&";  //Get the number of results to be displayed
     	 if(window.typingTimer != null) clearTimeout(typingTimer);
-    	 typingTimer = setTimeout(function(){do_search(page,search)}, 600);
+    	 typingTimer = setTimeout(function(){do_search(page,search,fieldname);page.find(".content_table thead input[name='"+fieldname+"']").focus()}, 600);
+
       }
    });
    //Bulk update with checkboxes
@@ -429,7 +431,7 @@ $(function() {
              });
        }
    });
-   $(document).on('click','.edit_field', function(event) {
+   $(document).on('click touchstart tap','.edit_field', function(event) {
      var page = getCurrentPage(this);
      var url = page.find('.current_page').val() + "&action=Edit_Field&get_id="+ $(this).attr('lookup_id') +"&get_key=" + $(this).attr('key');
      var the_div = $(this);
@@ -446,9 +448,9 @@ $(function() {
      if((event.type == 'change' && $('input',this).attr('type') != 'text') || (event.type =='focusout' && $('input',this).attr('type') == 'text') ){
      var page = getCurrentPage(this);
      var key = $(this).attr('key');
-     var search = $(this).find('.get_field').serialize()+"&";
-     /*
-     $(this).find('.get_field').each(function() {
+     var search = $(this).find('.lookup_field').serialize()+"&";
+    /*
+     $(this).find('.set_field').each(function() {
       if($(this).val()){    //Check if this is a checkbox array
         if($(this).attr('name').search(/\[\]/) != -1){
               if($(this).is(":checked"))
@@ -457,10 +459,10 @@ $(function() {
         else
             search = search + $(this).attr('name') +"="+ encodeURIComponent($(this).val()) +"&";
       }
-    }); */
+    });    */
 
 
-     var url = page.find('.current_page').val() + "&action=Set_Field&get_id="+ $(this).attr('lookup_id') +"&get_key=" + key+"&"+search;
+     var url = page.find('.current_page').val() + "&action=Set_Field&get_id="+ $(this).attr('lookup_id') +"&get_key=" + key+"&"+search ;
      var the_div = $(this);
          get_queue( url +"&jquery=TRUE", function(msg) {
            try{var response = $.parseJSON(msg);}
@@ -551,9 +553,9 @@ $(function() {
    $(document).on('click','.plus', function(event) {
          var page = getCurrentPage(this);
          var plus_link =  $(this);        //"&"+ getSearchVars(page)+
-         get_queue($(this).attr('href')+   "&jquery=TRUE", function(msg) {
+         get_queue($(this).attr('href')+  "&"+ getSearchVars(page)+ "&jquery=TRUE", function(msg) {
               if(msg.length > 0){
-                    plus_link.parents('tr').after(msg);
+                    plus_link.closest('tr').after(msg);
                     plus_link.removeClass('plus');
                     plus_link.addClass('minus');
                     plus_link.unbind();
@@ -565,7 +567,7 @@ $(function() {
     $(document).on('click','.minus', function(event) {
          $(this).removeClass('minus');
          $(this).addClass('plus');
-         $(this).parents('tr').next().remove();
+         $(this).closest('tr').next().remove();
          $(this).unbind();
          return false;
     });
@@ -697,7 +699,7 @@ function open_window(src,heights,widths){
         onOpen: function (dialog) {
     	dialog.overlay.fadeIn('slow', function () {
     		dialog.data.hide();
-    		dialog.container.css({'right' : 1200-widths, 'top' : '-1350px'}).animate({width: widths, height: heights, right: "0px", top: "100px"}, "slow", function () {
+    		dialog.container.css({'right' : 1200-widths, 'top' : '-1350px'}).animate({width: widths, height: heights, right: "0px", top: "20px"}, "slow", function () {
     		    dialog.data.fadeIn("fast");
     		}).fadeIn("slow");
     	});
@@ -729,15 +731,25 @@ function open_popup(text,heights,widths){
         autoResize:true,autoPosition:true
         });
 }
-function do_search(page,search){
+function do_search(page,search,focus_field){
     //Send the request to server
     post_queue(page.find('.current_page').val() + "&sort="+ page.find('.sort').val() +"&ascending=" + page.find('.sort').attr('ascending') +"&action=Get_results&jquery=TRUE",search, function(msg) {
           try{
+            if(page.find('.content_table thead').find("> tr:first > td").length == $(msg).find('.content_table thead').find("> tr:first > td").length){
+                page.find('.content_table tbody').html($(msg).find('.content_table tbody').html());
+                  page.find('.total_results').html($(msg).find('.total_results').html());
+                  page.find('.page_list').html($(msg).find('.page_list').html());
+            }
+            else{
                   page.find('.results').replaceWith(msg);
-                  //var table_html = jQuery.parseJSON(msg);
-                  //page.find('.content_table tbody').html(table_html[1]);
-                  //page.find('.total_results').html(table_html[2]+" Records");
-                  //page.find('.page_list').html(table_html[0]);
+                  if(focus_field){
+                    var input_field = page.find(".content_table thead input[name='"+focus_field+"']");
+                    input_field.focus();
+                    var val = input_field.val();
+                    input_field.val('');
+                    input_field.val(val);
+                  }
+            }
           }
           catch(err){
                   if(msg.search('name="loginform"'))

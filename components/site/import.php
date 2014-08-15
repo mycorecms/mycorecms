@@ -71,6 +71,7 @@ class ImportClass extends TableClass{
                             }
                         }
                         $this->db->get_db()->select_db($this->variables['database']);
+                        
                         //Parse the XML file
                         if($this->variables['type'] =='.xml'){
                               $this->xml_import($_FILES);
@@ -190,11 +191,15 @@ class ImportClass extends TableClass{
                 $ids =$searches= array();
                 $fail=$pass=0;
                 foreach($tables as $table_name =>$table){
+                  IF($this->variables['truncate'])
+                            $this->mysql->set_sql("TRUNCATE {$table_name}"); //clear out any data in import
+
                   $headings = array_keys($table[0]);
                   if(strpos($headings[0],'_id'))
                           $table_primary_key = $headings[0];
                   else
                           $table_primary_key =  $table_name."_id";
+
                             for($i=0; $i<sizeof($table); $i++) {
                               $row = $table[$i];
                               $file_types = array();
@@ -227,11 +232,13 @@ class ImportClass extends TableClass{
                                   if(isset($file_length[$j]))
                                     $fields[str_replace(" ","_",$headings[$j])]["max_length"]=255;
                               }
+                              if(!isset($fields[$table_primary_key]))
+                                    $fields[$table_primary_key] = array("type"=>"int","min_length"=>1);
 
                             $mysql = new MySQLClass($this->db->get_db(),$fields,$table_name,$table_primary_key);
                             for($i=0; $i<sizeof($table); $i++) {
                               $row = $table[$i];
-                              $primary_id = 0;
+                              $primary_id = NULL;
                               $mysql->clear();
                               $key_match = false;
                               foreach($headings as $key){
@@ -246,18 +253,19 @@ class ImportClass extends TableClass{
                                 }
                                 IF($row[$key] != 'NULL' && ($key!= $table_primary_key OR $this->variables['truncate'] OR $key_match))
                                     $mysql->{str_replace(" ","_",$key)} = $row[$key];
-                                else
+                                else if($key == $table_primary_key)
                                    $primary_id = $row[$key];
 
 
                               }
                               $mysql->last_error = '';
                               $mysql->save();
+                              $error_log .= $mysql->$table_primary_key." ";
                               if($mysql->last_error != '')
                                     $error_log .= $mysql->last_error.$table_primary_key."\r\n";
                               //$mysql->load();
                               if($primary_id>0)
-                                        $ids[$table_primary_key][$primary_id] = $mysql->{$table_primary_key};   //Provide the new key for linking
+
                               if($mysql->last_error != '')
                                 $fail +=1;
                               else

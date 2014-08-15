@@ -160,8 +160,8 @@ class UserPageAccessClass extends TableClass{
                     parent::edit_field($key,$class);
 
    }
-   public function update_permissions($user_id){
-     $user_pages = $this->mysql->get_sql('SELECT * FROM user_page_access WHERE page!="" AND user_id = '.$user_id);
+   public function update_permissions($user_id,$page){
+     $user_pages = $this->mysql->get_sql("SELECT * FROM user_page_access WHERE page!='' AND user_id = {$user_id} ".(strrpos($page,'.php')?" AND section LIKE '".substr($page,0,strrpos($page,'/'))."'":" AND page NOT LIKE '%.php%'"));
      foreach($user_pages as $user_page){
         $this->mysql->{$this->primary_key} = $user_page[$this->primary_key];
         $this->mysql->load();
@@ -173,8 +173,8 @@ class UserPageAccessClass extends TableClass{
      $excludes = array();
      $options = array();
      if($section != ''){
-          
-          $pages = $this->mysql->get_sql("SELECT DISTINCT GROUP_CONCAT(CONCAT(page_title,'.',page_id)) as page FROM page WHERE hidden != 1 AND parent_page_id =0 AND section = '".$section."'");
+
+          $pages = $this->mysql->get_sql("SELECT DISTINCT GROUP_CONCAT(CONCAT(page_title,'.',page_id)) as page FROM page WHERE hidden != 1 AND parent_page_id =0 AND section = '".$this->mysql->escape_string($section)."'");
           $options = (isset($pages[0]) && $pages[0]['page'] != ''?explode(',',$pages[0]['page']):NULL);
                            if(is_dir(SITEPATH."/components/".$this->variables['section']."/")){
                              if ($handle = opendir(SITEPATH."/components/".$section."/")) {
@@ -182,6 +182,7 @@ class UserPageAccessClass extends TableClass{
                                     if (!is_dir(SITEPATH."/components/".$section."/".$entry)&& $entry != "." && $entry != ".."){
                                         require_once SITEPATH."/components/".$section."/".$entry;
                                         eval("\$class_page = new ".str_replace("_","",str_replace('.php','',$entry))."Class();");
+                                        $class_page->user = $this->user;
                                         if(isset($class_page->children)){
                                            foreach($class_page->children as $child)
                                               $excludes[]=str_replace($section."/","",$child['get_page']);
@@ -224,7 +225,6 @@ class UserPageAccessClass extends TableClass{
                         $page_permissions[] = substr($page,(strrpos($page,'.')?strrpos($page,'.')+1:0));
 
                         $children = $this->get_children($section."/".$page);
-                        //echo $section."/".$page."<br />";
                         if(sizeof($children) > 0)
                             $page_permissions = array_merge($page_permissions,$children);
 
@@ -248,18 +248,19 @@ class UserPageAccessClass extends TableClass{
                           if(is_file (SITEPATH . "/components/".$path)){ //Prevent an error if a file has been deleted from the server
                             if (!class_exists(str_replace("_","",$page_check)."Class"))
                                require_once SITEPATH . "/components/".$path;
-                            eval("\$class_page = new ".str_replace("_","",$page_check)."Class();");
+                               eval("\$class_page = new ".str_replace("_","",$page_check)."Class();");
+
                           }
                         }
+                        $class_page->user = $this->user;
                         if(isset($class_page->children)){
                           foreach($class_page->children as $child){
-                            if(strrpos($child['get_page'],'.php'))
+                            if(isset($child['get_page'])){
                                 $children[] = $child['get_page'];
-                            else
-                                $children[] = $child['get_page'];
-                            $child= $this->get_children($child['get_page']);
-                            if(sizeof($child) >0)
-                                $children[] = $this->get_children($child['get_page']);
+                                $child= $this->get_children($child['get_page']);
+                                if(sizeof($child) >0 )
+                                    $children = array_merge($children,$child);
+                             }
                           }
                          }
                         return $children;

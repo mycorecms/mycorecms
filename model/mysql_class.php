@@ -96,8 +96,9 @@ class MySQLClass extends MySQLDatabase {
                       $this->update_table();
 
         $new_record = false;
-        if($this->data[$this->primary_key] > 0){ // Check if the ID has been assigned and it is not currently in the database
-                $record_check = $this->get_sql("SELECT * FROM {$this->table_name} WHERE {$this->primary_key} = {$this->data[$this->primary_key]}");
+        $auto_increment = true;
+        if($this->data[$this->primary_key] > 0 OR strlen($this->data[$this->primary_key]) >2){ // Check if the ID has been assigned and it is not currently in the database
+                $record_check = $this->get_sql("SELECT * FROM {$this->table_name} WHERE {$this->primary_key} = '{$this->data[$this->primary_key]}'");
                 if(!isset($record_check[0])){
                     $new_record = true;
                     $auto_increment = false;
@@ -105,7 +106,7 @@ class MySQLClass extends MySQLDatabase {
         }
         else
              $new_record = true;
-        $auto_increment = true;
+
         if($this->requirement_check){
                 // Validate fields
 		foreach ( $this->fields as $field_name => $field_attributes ) {
@@ -114,7 +115,7 @@ class MySQLClass extends MySQLDatabase {
 		};
 	}
 
-        
+
 
         //Check if this is an Add
 		if ( $new_record ) {
@@ -122,7 +123,7 @@ class MySQLClass extends MySQLDatabase {
 			$sql_query = "INSERT INTO {$this->table_name}\n ({$tmp['columns']})\n VALUES ({$tmp['values']});\n";
             //echo $sql_query."<br />";                             //If we have an error, update table & re-run query
 			if ( $this->dbconnection->query($sql_query) === false && $this->update_table()  && $this->dbconnection->query($sql_query) === false ) {
-				$this->last_error = "Invalid query: ".(stristr($this->dbconnection->error,'Duplicate Entry')?'Duplicate Entry': $this->dbconnection->error)."\n";
+				$this->last_error = "Invalid Insert: ".(stristr($this->dbconnection->error,'Duplicate Entry')?'Duplicate Entry': $this->dbconnection->error)."\n";
                                 return false;
 			} else {
 				$this->data[$this->primary_key] = $this->dbconnection->insert_id;
@@ -134,7 +135,7 @@ class MySQLClass extends MySQLDatabase {
 			$sql_query = "UPDATE {$this->table_name}\n SET\n" .$tmp ."WHERE {$this->primary_key}={$this->data[$this->primary_key]}";
                                                             //If we have an error, update table & re-run query
 			if ( $this->dbconnection->query($sql_query) === false && $this->update_table() && $this->dbconnection->query($sql_query) === false ) {
-				$this->last_error = "Invalid query: ".(stristr($this->dbconnection->error,'Duplicate Entry')?'Duplicate Entry': $this->dbconnection->error).$sql_query."\n";
+				$this->last_error = "Invalid Update: ".(stristr($this->dbconnection->error,'Duplicate Entry')?'Duplicate Entry': $this->dbconnection->error)."\n";
 				return false;
 			} else return true;
 		}

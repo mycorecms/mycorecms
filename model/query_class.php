@@ -31,7 +31,7 @@ class QueryClass extends TableClass{
     public function init_variables(){
       $this->page_title = str_replace("_"," ",substr($this->page_id,(strpos($this->page_id,'/')?strrpos($this->page_id,'/')+1:0),-4)); //Set the title based on the page name
       //Generic function to grab all requests
-      
+
       foreach($_REQUEST as $name=>$value){
         if($value != '')
             $this->variables[$name] = $this->mysql->escape_string($value);
@@ -67,11 +67,17 @@ class QueryClass extends TableClass{
                   $this->show_results();
              break;
          case "Details":
-         
-              ob_clean();
+             /*
+              @ob_clean();
               echo "\t<div class='tab'>\n";
+              $this->sql_query = $this->queries[$this->row_id];
+              $this->total_query = "";
               $this->show_results();
-              echo "</div>\n";
+              echo "</div>\n";      */
+              ob_clean();
+              $results = $this->mysql->get_sql($this->queries[$this->row_id]);
+              echo $this->mysql->last_error;
+              echo $this->detailed_table($results);
          break;
          case "Export":
               $results = $this->mysql->get_sql($this->sql_query);
@@ -80,6 +86,10 @@ class QueryClass extends TableClass{
          case "Print":
                 $this->print_report();
                 exit();
+           break;
+           case "PDF":
+                $this->primary_key = $this->row_id;
+                $this->pdf_report();
            break;
          default:
               $this->show_filter_form();
@@ -103,7 +113,7 @@ class QueryClass extends TableClass{
     }
 
     public function show_results(){
-       echo "\t<div class='result'>\n";
+       echo "\t<div class='results'>\n";
         echo "\t<input class='sort' type='hidden' ascending='".$this->variables['ascending']."' value='".$this->variables['sort']."'/>\n";
         echo "\t<input class='current_page' name='".ucwords($this->page_title)."' type='hidden' value='".$_SERVER['PHP_SELF']."?get_page={$this->page_id}".( isset($this->parent_id) && isset($this->parent_key) ? "&amp;{$this->parent_key}={$this->parent_id}" : '')."'/>\n";
         $total_results = $this->mysql->get_sql_count($this->sql_query);
@@ -189,7 +199,7 @@ class QueryClass extends TableClass{
                         $answer .= "\t\t<td>";
                         if($i==0)
                              $answer .= $this->row_controls($result);
-                        $answer .=stripslashes (htmlentities($result[$key],ENT_QUOTES,'UTF-8'))."</td>\n";
+                        $answer .=nl2br(stripslashes (htmlentities($result[$key],ENT_QUOTES,'UTF-8')))."</td>\n";
                $i++;
               }
              $odd = !$odd;
@@ -202,9 +212,12 @@ class QueryClass extends TableClass{
     public function row_controls(&$result){
             $answer = '';
               if(isset($this->printable) && $this->printable && $result[$this->row_id])
-                  $answer .="<a style='cursor: pointer;' onclick='open_window(\"".$_SERVER['PHP_SELF']."?action=Print&amp;get_page={$this->page_id}&amp;row_id={$result[$this->row_id]}&amp;jquery=true&amp;rand=".rand()."\",600,700)' target='_blank'><img src='/view/page/images/printer.png' width='15' height='15' alt='Print' title='Print'/></a>\n";
+                  $answer .="<a style='cursor: pointer;' onclick='open_window(\"".$_SERVER['PHP_SELF']."?action=Print&amp;get_page={$this->page_id}&amp;{$this->row_id}={$result[$this->row_id]}&amp;jquery=true&amp;rand=".rand()."\",600,700)' target='_blank'><img src='/view/page/images/printer.png' width='15' height='15' alt='Print' title='Print'/></a>\n";
               if($this->user->mysql->delete && $this->deleteable && $result[$this->row_id])
-                  $answer .="<a class='delete_row' href='".$_SERVER['PHP_SELF']."?action=Delete&amp;get_page={$this->page_id}&amp;row_id={$result[$this->row_id]}'><img src='/view/page/images/cross.png' width='15' height='15' alt='Delete' title='Delete'/></a>";
+                  $answer .="<a class='delete_row' href='".$_SERVER['PHP_SELF']."?action=Delete&amp;get_page={$this->page_id}&amp;{$this->row_id}={$result[$this->row_id]}'><img src='/view/page/images/cross.png' width='15' height='15' alt='Delete' title='Delete'/></a>";
+              if(isset($this->dfable) && $this->pdfable && $result[$this->row_id])
+                $answer .= "\t\t<a style='cursor: pointer;' target='_blank' href='".$_SERVER['PHP_SELF']."?get_page={$this->page_id}&amp;action=PDF&amp;{$this->row_id}={$result[$this->row_id]}&amp;jquery=true&amp;rand=".rand()."'><img src='/view/page/images/pdf.png' width='20' height='20' alt='PDF' title='PDF'/></a>\n";
+             
              if(isset($this->queries[$this->row_id]) && isset($result[$this->row_id]))
                $answer .="<a style='cursor: pointer;' class='plus' alt='Details' title='Details' href='".$_SERVER['PHP_SELF']."?get_page={$this->page_id}&amp;action=Details&amp;{$this->row_id}={$result[$this->row_id]}'></a>";
              return $answer;
@@ -216,7 +229,7 @@ class QueryClass extends TableClass{
         //Display the contents of each field in array
         if(!empty($results)){
           $answer .= "\t<tr class='contain".str_replace(' ','__',$this->variables[$this->row_id])."' ". ( $odd ? ' class="odd"' : '')."><td colspan='100%'>\n";
-          /*$answer .= "<table class='content_table'>\n";
+          $answer .= "<table class='content_table'>\n";
             $answer .="<thead>\n\t<tr>\n";
                 foreach ( array_keys($results[0]) as $key )	$answer .="\t\t<th>".str_replace("_"," ",$key)."</th>\n";
         	$answer .="\t</tr>\n</thead>\n<tbody>\n";
@@ -228,7 +241,7 @@ class QueryClass extends TableClass{
               $answer .= "\t</tr>\n";
               $odd = !$odd;
            }
-         $answer .= "</tbody>\n</table>\n";  */
+         $answer .= "</tbody>\n</table>\n";
          $answer .= "\t</td></tr>\n";
         }
          return $answer;
@@ -327,6 +340,65 @@ class QueryClass extends TableClass{
             $return .= "</div>\n";
             return $return;
     }
+    function pdf_report(){
+      ob_get_clean();
+       if(!is_dir(SITEPATH."/uploads/temp/")){
+                      if (!mkdir(SITEPATH."/uploads/temp/", 0777)){
+                          $this->variables['error'] = "Error Creating Directory";
+                          break;
+                      }
+       }
+      chmod(SITEPATH."/uploads/temp/",0777);
+      $file_list = '';
+
+          $wsdl = "https://10.0.1.7/jasperserver/services/repository?wsdl";
+          $username = "lolinger";
+          $password = "KNO3boom";
+          $format = "PDF"; // Could be HTML, RTF, etc (but remember to update the Content-Type header above)
+          $client = new SoapClient($wsdl, array('login' => $username, 'password' => $password, "trace" => 1, "exceptions" => 0));
+          //echo $print_id;
+          foreach($this->reports as $report){
+
+              $request = "<request operationName=\"runReport\" locale=\"en\">
+                  <argument name=\"RUN_OUTPUT_FORMAT\">{$format}</argument>
+                  <resourceDescriptor name=\"\" wsType=\"\"
+                  uriString=\"/reports/{$report}\"
+                  isNew=\"false\">
+                  <label>".str_replace("Class","",get_class($this))."</label>";
+                  foreach($this->variables as $key=>$value){
+                        $request .= "<parameter name='{$key}'>".(strpos($key,"date")?1000 *strtotime($this->variables[$key]):$this->variables[$key])."</parameter> ";
+                  }
+                  $request .="</resourceDescriptor></request>";
+
+               $client->runReport($request);
+               //echo $request;
+               //echo $client->__getLastResponse();
+
+
+               $output = $client->__getLastResponse();
+               //Save output as PDF
+               if($output != ''){
+                 $file =  SITEPATH."/uploads/temp/".str_replace('/','_',$report).".pdf";
+                 $file_list .= $file." ";
+                 file_put_contents($file, $output);
+               }
+        }
+        //Merge PDF's
+        $cmd = "gs -q -dNOPAUSE -dBATCH -sDEVICE=pdfwrite -sOutputFile=".SITEPATH."/uploads/temp/merged.pdf ".$file_list ;
+        $result = shell_exec($cmd." 2>&1");
+        //echo $result;
+        //Export merged PDF
+        header('Content-type: application/pdf');
+        header("Content-Disposition: attachment; filename=".str_replace("Class","",get_class($this)).".pdf");
+        header("Content-Length: ".filesize(SITEPATH."/uploads/temp/merged.pdf"));
+        readfile(SITEPATH."/uploads/temp/merged.pdf");
+
+        //Delete temp files
+        unlink(SITEPATH."/uploads/temp/merged.pdf");
+          foreach($this->reports as $report){
+              unlink(SITEPATH."/uploads/temp/".str_replace('/','_',$report).".pdf");
+          }
+  }
 
 }
 ?>

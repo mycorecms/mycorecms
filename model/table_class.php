@@ -87,13 +87,13 @@ class TableClass{
         if(!isset($this->parent_key))
             $this->parent_key = ( isset($_REQUEST['parent_key']) ?$_REQUEST['parent_key'] : $this->parent_key);
         $this->parent_id = ( isset($_REQUEST[$this->parent_key]) ?$_REQUEST[$this->parent_key] : $this->parent_id);
-         /*
-        if(isset($this->parent_key) && isset($this->parent_id)  && isset($this->table_name){
+
+        if(isset($this->parent_key) && isset($this->parent_id)  && isset($this->table_name)){
             if(!isset($this->fields[$this->parent_key])){   //Check if the parent key is in the child, if not add it
                 $this->fields[$this->parent_key] = array("type" => "int", "hidden" => TRUE);
-                $this->mysql = new MySQLClass($this->db->get_db(),$this->fields,$this->table_name,$this->primary_key);
+                $this->mysql->fields = $this->fields;
             }
-        }  */
+        }
 
         foreach(array_keys($this->fields) as $key){
           if(!isset($this->variables[$key])){//don't reset a key that is already set
@@ -112,7 +112,7 @@ class TableClass{
                 break;
                 case "table_link-checkboxes":
                 case "checkbox-list":
-                  $this->variables[$key]  = ( isset($_REQUEST[$key]) ? implode(',',$_REQUEST[$key]) : NULL);
+                  $this->variables[$key]  = ( isset($_REQUEST[$key]) && $_REQUEST[$key]!='' ? implode(',',$_REQUEST[$key]) : NULL);
                   if($this->variables[$key] != NULL && (isset($this->fields[$key]['searchable']) OR $this->variables['advanced_search'] == 1)){
                       foreach(explode(',',$this->variables[$key]) as $value)
                         $this->where_criteria[] = array("field" => "{$key}", "operator"=>"=", "argument"=>"{$value}");
@@ -145,7 +145,7 @@ class TableClass{
            }
 
            //Shows defaults on Add
-           if($this->variables['action'] == 'Add_New' || ($this->variables['action'] == 'Add' &&  $this->fields[$key]['min_length'] > 0))
+           if($this->variables['action'] == 'Add_New' || ($this->variables['action'] == 'Add' &&  isset($this->fields[$key]['min_length']) && $this->fields[$key]['min_length'] > 0))
                  $this->variables[$key] = ( isset($this->fields[$key]['default']) && $this->variables[$key] == '' ? ($this->fields[$key]['default']=='current_timestamp'?date('Y-m-d'):$this->fields[$key]['default']) : $this->variables[$key]);
           }
         }
@@ -171,12 +171,14 @@ class TableClass{
         //Get user information when adding/updating new entry
         if($this->variables['action'] == 'Add'){
             $this->variables['created'] = date('Y-m-d H:i:s');
+            if(isset($this->user->mysql))
             $this->variables['created_by'] = $this->user->mysql->first_name." ".$this->user->mysql->last_name;
         }
 
         if($this->variables['action'] == 'Add' || $this->variables['action'] == 'Update' || $this->variables['action'] == 'Delete' || $this->variables['action'] == 'Set_Field'){
             $this->where_criteria = NULL;
             $this->variables['updated'] = date('Y-m-d H:i:s');
+            if(isset($this->user->mysql))
             $this->variables['updated_by'] = $this->user->mysql->first_name." ".$this->user->mysql->last_name;
         }
 
@@ -184,10 +186,11 @@ class TableClass{
         $this->variables['city_field'] = 'city';
         $this->variables['zip_field'] = 'zip';
 
-        $this->permissions['add'] = (!isset($this->permissions['add'])?$this->user->mysql->add:$this->permissions['add']);
-        $this->permissions['edit'] = (!isset($this->permissions['edit'])?$this->user->mysql->edit:$this->permissions['edit']);
-        $this->permissions['delete'] = (!isset($this->permissions['delete'])?$this->user->mysql->delete:$this->permissions['delete']);
-        $this->permissions['export'] = (!isset($this->permissions['export'])?$this->user->mysql->export:$this->permissions['export']);
+        $this->permissions['add'] = (!isset($this->permissions['add']) ?(isset($this->user->mysql->add)?$this->user->mysql->add:FALSE):$this->permissions['add']);
+        $this->permissions['edit'] = (!isset($this->permissions['edit'])?(isset($this->user->mysql->edit)?$this->user->mysql->edit:FALSE):$this->permissions['edit']);
+        $this->permissions['delete'] = (!isset($this->permissions['delete'])?(isset($this->user->mysql->delete)?$this->user->mysql->delete:FALSE):$this->permissions['delete']);
+        $this->permissions['export'] = (!isset($this->permissions['export'])?(isset($this->user->mysql->export)?$this->user->mysql->export:FALSE):$this->permissions['export']);
+
       }
     }
 
@@ -195,7 +198,7 @@ class TableClass{
 
     public function action_check($action = NULL){
         $this->init_variables();
-        $this->variables['action'] = (isset($action) && $action!= '' ? $action : $this->variables['action']);
+        $this->variables['action'] = (isset($action) ? $action : $this->variables['action']);
         switch ($this->variables['action']) {
            case "Add":
 
@@ -210,7 +213,7 @@ class TableClass{
               // Call routine to perform add
               	$this->mysql->clear();
               	foreach(array_keys($this->fields) as $key){
-              	  if($this->fields[$key]['type'] != 'file' && ($key != $this->primary_key OR $this->variables[$key] >0))
+              	  if($this->fields[$key]['type'] != 'file' && ($key != $this->primary_key OR $this->variables[$key] >0 OR strlen($this->variables[$key]) >2))
                       $this->mysql->$key = $this->variables[$key];
                   }
 
@@ -244,6 +247,10 @@ class TableClass{
                       $this->show_add_edit_form();
                   else
                       echo $this->variables['error'];
+               }
+               else{
+                   $this->variables['error'] = "Permission Denied";
+                   echo $this->variables['error'];
                }
              break;
 
@@ -289,10 +296,10 @@ class TableClass{
                         }
                         $this->mysql->delete();
             			$this->variables['error'] = $this->variables[$this->primary_key] ." Deleted";
-                        if(isset($files)){
+                        /*if(isset($files)){
                           foreach($files as $file)
                               unlink(SITEPATH.$file);  //delete any files
-                        }
+                        }                         */
                         require_once SITEPATH . "/components/site/change_log.php";
                         $change_log = new ChangeLogClass($this->db);
                         $change_log->mysql->clear();
@@ -310,6 +317,10 @@ class TableClass{
             	else
             		$this->variables['error']="Missing $this->primary_key for delete";
              }
+             else{
+                   $this->variables['error'] = "Permission Denied";
+                   echo $this->variables['error'];
+               }
              break;
 
              case "Update":
@@ -380,6 +391,10 @@ class TableClass{
                else
                     echo $this->variables['error'];
             }
+            else{
+                   $this->variables['error'] = "Permission Denied";
+                   echo $this->variables['error'];
+               }
            break;
            case "Get_results":
                 /*$counts =  $this->mysql->get_counts($this->where_criteria);
@@ -446,7 +461,7 @@ class TableClass{
                         $change_log->mysql->save();
                   }
 
-
+                  @ob_clean();
                   //Display the field
                   $response[] = $this->view_field($this->mysql,$this->variables['get_key']);
                   $response[] = $this->mysql->last_error;
@@ -674,19 +689,19 @@ class TableClass{
       $type = (isset($this->fields[$key]['type'])?$this->fields[$key]['type']:'text');
             echo "<div class='{$key}_{$this->table_name}_field {$type}_field'>\n";
             switch($type){
-                    case "list+other":
+                    case "list_other":
                     case "list":
-                        if($type == "list+other")
+                        if($type == "list_other")
                             echo "<div id='".$key."_other_option'>\n";
-                        echo "\t<select class='".( isset($class) ? "{$class} " : ( $type == "list+other" ? "{$this->table_name}_{$key} other_option" : "{$key} ")). ( isset($error) && $key == $error[0] ? 'error ' : '')."' ".( isset($this->fields[$key]['style']) ? "style='".$this->fields[$key]['style']."'" : "") ." ".( isset($this->fields[$key]['js'])  ? ' onchange="'.$this->fields[$key]['js'].'"' : '')." name='$key'>\n";
+                        echo "\t<select class='".( isset($class) ? "{$class} " : ( $type == "list_other" ? "{$this->table_name}_{$key} other_option" : "{$this->table_name}_{$key} ")). ( isset($error) && $key == $error[0] ? 'error ' : '')."' ".( isset($this->fields[$key]['style']) ? "style='".$this->fields[$key]['style']."'" : "") ." ".( isset($this->fields[$key]['js'])  ? ' onchange="'.$this->fields[$key]['js'].'"' : '')." name='$key'>\n";
                         echo "\t\t<option></option>\n";
                         asort($this->fields[$key]['options']);
                         foreach($this->fields[$key]['options'] as $option)
                             echo "\t\t<option ". ( $this->variables[$key] == $option ? "selected='selected'" : "") .">$option</option>\n";
-                        if($type == "list+other")
+                        if($type == "list_other")
                             echo "\t\t<option>Other</option>\n";
                         echo "\t</select>\n";
-                        if($type == "list+other")
+                        if($type == "list_other")
                             echo "</div>\n";
                     break;
                     case "range":
@@ -698,7 +713,7 @@ class TableClass{
                     break;
                     case "auto":
                         echo "<div id='".$key."_other_option'>\n";
-                        $this->show_dropdown($this->table_name,$key,$key,$this->variables[$key],( isset($this->fields[$key]["where"]) ? $this->fields[$key]["where"] : " WHERE {$key} IS NOT NULL and {$key} != '' ORDER BY {$key} "),( isset($class) ? "{$class} other_option" : "{$this->table_name}_{$key} other_option"),NULL,( isset($this->fields[$key]['style']) ? "style='".$this->fields[$key]['style']."'" : ""));
+                        $this->show_dropdown($this->table_name,$key,$key,$this->variables[$key],( isset($this->fields[$key]["where"]) ? $this->fields[$key]["where"] : " WHERE {$key} IS NOT NULL and {$key} != ''")." ORDER BY {$key} ",( isset($class) ? "{$class} other_option" : "{$this->table_name}_{$key} other_option"),NULL,( isset($this->fields[$key]['style']) ? "style='".$this->fields[$key]['style']."'" : ""));
                         echo "</div>\n";
                     break;
                     case "distinct_list":
@@ -720,6 +735,17 @@ class TableClass{
                         }
                         echo "</ul>\n";
                     break;
+                    case "radio-list":
+                        echo "<ul class='{$type}'>\n";
+                        $list = explode(',',$this->variables[$key]);
+                        foreach($this->fields[$key]['options'] as $option){
+                                echo "<li>\n";
+                                echo "\t<input  ".( isset($this->fields[$key]['style']) ? "style='".$this->fields[$key]['style']."'" : "") ." class='".( isset($class) ? "{$class} " :""). "{$this->table_name}_{$key} ". ( isset($error) && $key == $error[0] ? 'error ' : '')."' name='{$key}' value='".$option."' ". (in_array($option,$list) ? "checked='checked'" : "")." type='radio' />\n";
+                                echo "\t".str_replace("_"," ",$option)."\n";
+                                echo "</li>\n";
+                        }
+                        echo "</ul>\n";
+                    break;
                     case "checkbox-list":
                         echo "<ul class='{$type}'>\n";
                         $list = explode(',',$this->variables[$key]);
@@ -732,11 +758,11 @@ class TableClass{
                         echo "</ul>\n";
                     break;
                     case "bool":
-                      echo "\t\t<input style='width:auto;display:inline;margin-left:5px;border:0;'  type='radio' name='$key' class='".( isset($class) ? "{$class} " : "{$this->table_name}_{$key} "). ( isset($error) && $key == $error[0] ? 'error ' : '')."'  value='1' ".( $this->variables[$key] == 1 ? "checked" : "") ."/>Yes\n";
-                      echo "\t\t<input style='width:auto;display:inline;margin-left:20px;border:0;float:none;'  type='radio' name='$key' class='".( isset($class) ? "{$class} " : "{$this->table_name}_{$key} "). ( isset($error) && $key == $error[0] ? 'error ' : '')."'  value='0' ".( $this->variables[$key] == 0 ? "checked" : "") ."/>No\n";
+                      echo "\t\t<input style='width:auto;display:inline;margin-left:5px;border:0;'  type='radio' name='$key' class='".( isset($class) ? "{$class} " : "{$this->table_name}_{$key} "). ( isset($error) && $key == $error[0] ? 'error ' : '')."'  value='1' ".( isset($this->fields[$key]['js'])  ? ' onclick="'.$this->fields[$key]['js'].'"' : '')." ".( $this->variables[$key] == 1 ? "checked" : "") ."/>Yes\n";
+                      echo "\t\t<input style='width:auto;display:inline;margin-left:20px;border:0;float:none;'  type='radio' name='$key' class='".( isset($class) ? "{$class} " : "{$this->table_name}_{$key} "). ( isset($error) && $key == $error[0] ? 'error ' : '')."'  value='0' ".( isset($this->fields[$key]['js'])  ? ' onclick="'.$this->fields[$key]['js'].'"' : '')." ".( $this->variables[$key] == 0 ? "checked" : "") ."/>No\n";
                     break;
                     case "checkbox":
-                        echo "\t<input class='".( isset($class) ? "{$class} " : "{$this->table_name}_{$key} "). ( isset($error) && $key == $error[0] ? 'error ' : '')."' ".( isset($this->fields[$key]['style']) ? "style='".$this->fields[$key]['style']."'" : "") ."  name='$key' type='checkbox' value='TRUE' ". ($this->variables[$key] ==TRUE ? "checked='checked'" : "")." ".( isset($this->fields[$key]['js'])  ? " onclick='".$this->fields[$key]['js']."'" : '')."/>\n";
+                        echo "\t<input class='".( isset($class) ? "{$class} " : "{$this->table_name}_{$key} "). ( isset($error) && $key == $error[0] ? 'error ' : '')."' ".( isset($this->fields[$key]['style']) ? "style='".$this->fields[$key]['style']."'" : "") ."  name='$key' type='checkbox' value='TRUE' ". ($this->variables[$key] ==TRUE ? "checked='checked'" : "")." ".( isset($this->fields[$key]['js'])  ? ' onclick="'.$this->fields[$key]['js'].'"' : '')."/>\n";
                     break;
                     case "textarea":
                         echo "\t<textarea class='".( isset($class) ? "{$class} " : "{$this->table_name}_{$key} "). ( isset($error) && $key == $error[0] ? 'error ' : '')."' ".( isset($this->fields[$key]['style']) ? "style='".$this->fields[$key]['style']."'" : "") ."  name='$key' rows='".( isset($this->fields[$key]['rows']) ? $this->fields[$key]['rows'] : "4") ."' ".( isset($this->fields[$key]['js'])  ? ' onchange="'.$this->fields[$key]['js'].'"' : '')." cols='20'>". $this->variables[$key]."</textarea>\n";
@@ -750,7 +776,7 @@ class TableClass{
                             echo "<input class='Filter' name='{$key}' type='text'>\n";
                     break;
                     default:
-                        echo ($type=="currency"?"<div style='display:inline;float:left;'>$</div>":"").'<input  class="'.( isset($class) ? "{$class} " : "{$this->table_name}_{$key} "). ( isset($error) && $key == $error[0] ? 'error ' : '').''. ( isset($this->fields[$key]['type']) && $this->fields[$key]['type'] =='timestamp' ? 'datepickerclass ' : ( $this->fields[$key]['type'] =='time' ? 'timepickerclass ' : '')).'" '.( isset($this->fields[$key]['style']) ? 'style="'.$this->fields[$key]['style'].'"' : "").' name="'.$key.'" type="'. ( $this->fields[$key]['type'] =='password' ? 'password' : 'text').'" onkeyup="'.$this->constrain_field($key).";".( isset($this->fields[$key]['js'])  ? $this->fields[$key]['js'] : '').'" value="'.$this->variables[$key].'"'.( (isset($this->fields[$key]['readyonly']) && $this->fields[$key]['readyonly']) || ((stripos($_SERVER['HTTP_USER_AGENT'],'iPad') || stripos($_SERVER['HTTP_USER_AGENT'],'android')) &&  $this->fields[$key]['type'] =='timestamp')?" readonly='TRUE'":"").'/>';
+                        echo ($type=="currency"?"<div style='display:inline;float:left;'>$</div>":"").'<input  class="'.( isset($class) ? "{$class} " : "{$this->table_name}_{$key} "). ( isset($error) && $key == $error[0] ? 'error ' : '').''. ( isset($this->fields[$key]['type']) && ($this->fields[$key]['type'] =='timestamp' || $this->fields[$key]['type'] =='date') ? 'datepickerclass ' : ( $this->fields[$key]['type'] =='time' ? 'timepickerclass ' : '')).'" '.( isset($this->fields[$key]['style']) ? 'style="'.$this->fields[$key]['style'].'"' : "").' name="'.$key.'" type="'. ( $this->fields[$key]['type'] =='password' ? 'password' : 'text').'" onkeyup="'.$this->constrain_field($key).";".( isset($this->fields[$key]['js'])  ? $this->fields[$key]['js'] : '').'" value="'.$this->variables[$key].'"'.( (isset($this->fields[$key]['readyonly']) && $this->fields[$key]['readyonly']) || ((stripos($_SERVER['HTTP_USER_AGENT'],'iPad') || stripos($_SERVER['HTTP_USER_AGENT'],'android')) &&  ($this->fields[$key]['type'] =='timestamp' || $this->fields[$key]['type'] =='date'))?" readonly='TRUE'":"").'/>';
                     break;
                 }
             echo "</div>\n";
@@ -893,6 +919,7 @@ class TableClass{
                 $child_page->user = $this->user;
                 $child_page->parent_key = $this->primary_key;
                 $child_page->parent_id = $this->variables[$this->primary_key];
+                $child_page->default_results = 1000;
                 if($child['action'] == 'Edit') //If we are in edit mode and a child page, don't show the close button
                     $child_page->show_close_link =FALSE;
                 $child_page->action_check($child['action']);
@@ -940,7 +967,7 @@ class TableClass{
 
 		if($num_pages > 10)
 		{
-			$answer .= ($current_page != 1 && $total_results >= 10) ? "<a class=\"result_limiter\" href=\"http://{$_SERVER['SERVER_NAME']}{$_SERVER[PHP_SELF]}?get_page={$this->page_id}".( isset($this->parent_id) && isset($this->parent_key) ? "&amp;{$this->parent_key}={$this->parent_id}&amp;parent_key={$this->parent_key}" : '').(isset($this->variables['advanced_search'])?"&advanced_search=".$this->variables['advanced_search']:"")."&page=$prev_page&rpp=$results_per_page\">&laquo; Previous</a> ":"<span class=\"inactive\" href=\"#\">&laquo; Previous</span> ";
+			$answer .= ($current_page != 1 && $total_results >= 10) ? "<a class=\"result_limiter\" href=\"http://{$_SERVER['SERVER_NAME']}{$_SERVER['PHP_SELF']}?get_page={$this->page_id}".( isset($this->parent_id) && isset($this->parent_key) ? "&amp;{$this->parent_key}={$this->parent_id}&amp;parent_key={$this->parent_key}" : '').(isset($this->variables['advanced_search'])?"&advanced_search=".$this->variables['advanced_search']:"")."&page=$prev_page&rpp=$results_per_page\">&laquo; Previous</a> ":"<span class=\"inactive\" href=\"#\">&laquo; Previous</span> ";
 			$start_range = $current_page - floor(7/2);
 			$end_range = $current_page + floor(7/2);
 			if($start_range <= 0)
@@ -961,18 +988,18 @@ class TableClass{
                     $answer .= " ... ";
 				// loop through all pages. if first, last, or in range, display
 				if($i==1 Or $i==$num_pages Or in_array($i,$range))
-					$answer .= ($i == $current_page) ? "<a title=\"Go to page $i of $num_pages\" class=\"current\" href=\"#\">$i</a> ":"<a class=\"result_limiter\" title=\"Go to page $i of $num_pages\" href=\"http://{$_SERVER['SERVER_NAME']}{$_SERVER[PHP_SELF]}?get_page={$this->page_id}".(isset($this->variables['advanced_search'])?"&advanced_search=".$this->variables['advanced_search']:"")."&page=$i&rpp=$results_per_page\">$i</a> ";
+					$answer .= ($i == $current_page) ? "<a title=\"Go to page $i of $num_pages\" class=\"current\" href=\"#\">$i</a> ":"<a class=\"result_limiter\" title=\"Go to page $i of $num_pages\" href=\"http://{$_SERVER['SERVER_NAME']}{$_SERVER['PHP_SELF']}?get_page={$this->page_id}".(isset($this->variables['advanced_search'])?"&advanced_search=".$this->variables['advanced_search']:"")."&page=$i&rpp=$results_per_page\">$i</a> ";
 				if($range[6] < $num_pages-1 && $i == $range[6])
                     $answer .= " ... ";
 			}
-			$answer .= (($current_page != $num_pages && $total_results >= 10) && !isset($_GET['page']) ) ? "<a title =\"Next\" class=\"result_limiter\" href=\"http://{$_SERVER['SERVER_NAME']}{$_SERVER[PHP_SELF]}?get_page={$this->page_id}".( isset($this->parent_id) && isset($this->parent_key) ? "&amp;{$this->parent_key}={$this->parent_id}&amp;parent_key={$this->parent_key}" : '').(isset($this->variables['advanced_search'])?"&advanced_search=".$this->variables['advanced_search']:"")."&page=$next_page&rpp=$results_per_page\">Next &raquo;</a>\n":"<span class=\"inactive\" href=\"#\">&raquo; Next</span>\n";
+			$answer .= (($current_page != $num_pages && $total_results >= 10) && !isset($_GET['page']) ) ? "<a title =\"Next\" class=\"result_limiter\" href=\"http://{$_SERVER['SERVER_NAME']}{$_SERVER['PHP_SELF']}?get_page={$this->page_id}".( isset($this->parent_id) && isset($this->parent_key) ? "&amp;{$this->parent_key}={$this->parent_id}&amp;parent_key={$this->parent_key}" : '').(isset($this->variables['advanced_search'])?"&advanced_search=".$this->variables['advanced_search']:"")."&page=$next_page&rpp=$results_per_page\">Next &raquo;</a>\n":"<span class=\"inactive\" href=\"#\">&raquo; Next</span>\n";
 
 		}
 		else
 		{
 			for($i=1;$i<=$num_pages;$i++)
 			{
-				$answer .= ($i == $current_page ? "<a class=\"current\" href=\"#\">$i</a> ":"<a class=\"result_limiter\" href=\"http://{$_SERVER['SERVER_NAME']}{$_SERVER[PHP_SELF]}?get_page={$this->page_id}".( isset($this->parent_id) && isset($this->parent_key) ? "&amp;{$this->parent_key}={$this->parent_id}&amp;parent_key={$this->parent_key}" : '').(isset($this->variables['advanced_search'])?"&advanced_search=".$this->variables['advanced_search']:"")."&page=$i&rpp=$results_per_page\">$i</a> ");
+				$answer .= ($i == $current_page ? "<a class=\"current\" href=\"#\">$i</a> ":"<a class=\"result_limiter\" href=\"http://{$_SERVER['SERVER_NAME']}{$_SERVER['PHP_SELF']}?get_page={$this->page_id}".( isset($this->parent_id) && isset($this->parent_key) ? "&amp;{$this->parent_key}={$this->parent_id}&amp;parent_key={$this->parent_key}" : '').(isset($this->variables['advanced_search'])?"&advanced_search=".$this->variables['advanced_search']:"")."&page=$i&rpp=$results_per_page\">$i</a> ");
 			}
 		}
 		$low = ($current_page-1) * $results_per_page;
@@ -991,7 +1018,7 @@ class TableClass{
     function lookup_id($table_name,$fields,$id_name,$id, $where = ""){
       if(isset($id) && $id != ''){
              $results = $this->mysql->get_sql("Select $fields FROM $table_name WHERE `$id_name`='$id' LIMIT 1");
-             echo $this->mysql->last_error;
+             //echo $this->mysql->last_error;
              foreach($results as $result){
                $answer = "";
                foreach(explode(',',$fields) as $field)
@@ -1003,22 +1030,20 @@ class TableClass{
        else return "";
     }
     function show_dropdown($table_name,$fields,$id,$value = null, $WHERE = null, $class='Filter',$lookup_id = NULL,$style= NULL,$onchange = NULL){
+             $this->mysql->last_error ='';
              echo "<select class='$class' name='{$id}' ".(isset($onchange)?'onchange="'.$onchange.'"':"")." ".(isset($style)?$style:"").">\n";
              $id = ( isset($lookup_id) ? $lookup_id : $id);
              echo "<option></option>";
-             if(!isset($WHERE) || $WHERE == ''){
-               $WHERE = "WHERE 1 ";
-               //foreach(explode(',',$fields) as $field)
-               //    $WHERE .= " AND ".$field." != ''";
-                $WHERE .=" ORDER BY ".$fields;
-             }
-
-
-             $results = $this->mysql->get_sql("Select DISTINCT $fields,$table_name.$id FROM $table_name $WHERE ");
-             //echo $this->mysql->last_error."Select $fields,$table_name.$id FROM $table_name $WHERE GROUP BY $fields,$table_name.$id";
+             if(!isset($WHERE) || $WHERE == '')
+               $WHERE = " ORDER BY ".$fields;
+             $sql ="Select DISTINCT $fields,$table_name.$id FROM $table_name {$WHERE} ";
+             $results = $this->mysql->get_sql(html_entity_decode($sql,ENT_QUOTES,'UTF-8'));
+             if($this->mysql->last_error != '')
+                     echo $this->mysql->last_error.$sql;
              if(sizeof($results) >0 && is_array($results)){
                foreach($results as $result){
                  $answer ="";
+                 $fields = str_replace("`","",$fields);
                  foreach(explode(',',$fields) as $field)
                       $answer .= $result[$field]. " ";
                  if(isset($value) && $value == $result[$id])
@@ -1042,7 +1067,7 @@ class TableClass{
 
           $return .= "<table cellspacing='0' style='width:6.5in;' class='footer'>";
           $return .= "<tfoot>";
-          $return .= "<td style='border-bottom: 2px solid black;border-top: 2px solid black;width:50px;'><img src='view/page/images/rhalogo.png' height='40' /></td><td style='border-bottom: 2px solid black;border-top: 2px solid black;font-size: 10px;text-align:center;vertical-align:middle;'>RHA: Program Design + Management<br />590 West Locust Avenue, Suite 103 - Fresno, CA 93650 - 559.447.7000</td>\n";
+          $return .= "<td style='border-bottom: 2px solid black;border-top: 2px solid black;width:50px;'><img src='view/page/images/logo.png' height='40' /></td><td style='border-bottom: 2px solid black;border-top: 2px solid black;font-size: 10px;text-align:center;vertical-align:middle;'>".SITE_NAME."</td>\n";
           $return .= "</tfoot>\n";
           $return .= "</table>\n";
 
@@ -1067,17 +1092,23 @@ class TableClass{
           }
      }
     function pdf_report(){
-       if(!is_dir(SITEPATH."/uploads/temp/")){
-                      if (!mkdir(SITEPATH."/uploads/temp/", 0777)){
+      if(!is_dir(SITEPATH."/uploads/")){
+                      if (!mkdir(SITEPATH."/uploads/", 0755)){
                           $this->variables['error'] = "Error Creating Directory";
                           break;
                       }
        }
-      chmod(SITEPATH."/uploads/temp/",0777);
+       if(!is_dir(SITEPATH."/uploads/temp/")){
+                      if (!mkdir(SITEPATH."/uploads/temp/", 0755)){
+                          $this->variables['error'] = "Error Creating Directory";
+                          break;
+                      }
+       }
+
       $print_ids = explode('|',$this->variables[$this->primary_key]);
       $file_list = '';
       foreach($print_ids as $print_id){
-          $wsdl = "https:/jasperserver.com/jasperserver/services/repository?wsdl";
+          $wsdl = "https://jasperserver.com/jasperserver/services/repository?wsdl";
           $username = "username";
           $password = "password";
           $format = "PDF"; // Could be HTML, RTF, etc (but remember to update the Content-Type header above)
@@ -1253,13 +1284,13 @@ class TableClass{
     }
     public function export_sql(&$results,$report_name=NULL){
     	if ( sizeof($results) > 0 ) {
-    			$delimeter = ",";
+    			$delimeter = "\t";
     			$text_delimeter = '"';
 
     			ob_clean();
                 $filename =  (isset($report_name)?$report_name:"Export")."_".date('m_d_Y');
                 header("Content-Type: application/vnd.ms-excel");
-    			header("Content-Disposition: attachment; filename=\"$filename.csv\"");
+    			header("Content-Disposition: attachment; filename=\"$filename.xls\"");
 
     			$line = "";
     			foreach ( array_keys($results[0]) as $key ) $line .= $text_delimeter . str_replace($delimeter, " ", $key) . $text_delimeter . $delimeter;
@@ -1298,10 +1329,11 @@ class TableClass{
     {
         ob_clean();
          if(!($file)) die('File not found or inaccessible!');
+         $file = html_entity_decode($file,ENT_QUOTES,'UTF-8');
          // required for IE, otherwise Content-Disposition may be ignored
          if(ini_get('zlib.output_compression'))
           ini_set('zlib.output_compression', 'Off');
-        //echo SITEPATH.$file;
+        //echo SITEPATH.str_replace(SITEPATH,'',$file);
         header("Pragma: public");
         header("Expires: 0");
         header("Cache-Control: must-revalidate, post-check=0, pre-check=0");
@@ -1311,6 +1343,7 @@ class TableClass{
         header("Content-Transfer-Encoding: binary");
         header("Content-Length: ".filesize(SITEPATH.str_replace(SITEPATH,'',$file)));
         readfile(SITEPATH.str_replace(SITEPATH,'',$file));
+
         exit();
     }
     function upload_file($key){
@@ -1332,30 +1365,30 @@ class TableClass{
             echo  $file['tmp_name'];
             if($file['tmp_name'] != ""){
                 if(!is_dir(SITEPATH."/uploads/")){
-                    if (!mkdir(SITEPATH."/uploads/", 0754)){
+                    if (!mkdir(SITEPATH."/uploads/", 0755)){
                         $this->variables['error'] = "Error Creating Directory";
                         return false;
                     }
                 }
                 $current_db = $this->mysql->get_sql('SELECT DATABASE() as db');
                 if(!is_dir(SITEPATH."/uploads/{$current_db[0]['db']}/")){
-                    if (!mkdir(SITEPATH."/uploads/{$current_db[0]['db']}/", 0754)){
+                    if (!mkdir(SITEPATH."/uploads/{$current_db[0]['db']}/", 0755)){
                         $this->variables['error'] = "Error Creating Directory";
                         return false;
                     }
                 }
                 if(!is_dir(SITEPATH."/uploads/{$current_db[0]['db']}/{$this->table_name}/")){
-                    if (!mkdir(SITEPATH."/uploads/{$current_db[0]['db']}/{$this->table_name}/", 0754)){
+                    if (!mkdir(SITEPATH."/uploads/{$current_db[0]['db']}/{$this->table_name}/", 0755)){
                         $this->variables['error'] = "Error Creating Directory";
                         return false;
                     }
                 }
                 if(!is_dir(SITEPATH."/uploads/{$current_db[0]['db']}/{$this->table_name}/".$this->variables[$this->primary_key]."/")){
-                        if (!mkdir(SITEPATH."/uploads/{$current_db[0]['db']}/{$this->table_name}/".$this->variables[$this->primary_key]."/", 0754)){
+                        if (!mkdir(SITEPATH."/uploads/{$current_db[0]['db']}/{$this->table_name}/".$this->variables[$this->primary_key]."/", 0755)){
                             $this->variables['error'] = "Error Creating Directory";
                             return false;
                         }
-                        chmod(SITEPATH."/uploads/{$current_db[0]['db']}/{$this->table_name}/".$this->variables[$this->primary_key]."/",0754);
+                        chmod(SITEPATH."/uploads/{$current_db[0]['db']}/{$this->table_name}/".$this->variables[$this->primary_key]."/",0755);
                 }   //Check if we have an image, if so shrink the file size
                 if(in_array($file['type'],array("image/jpeg", "image/gif", "image/png")))
                     $this->resize_img($file['tmp_name'], 1024, 768);
@@ -1478,7 +1511,7 @@ class TableClass{
         echo "</fieldset>\n";
 
     }
-    function display_results($title,$results){
+    function display_results($title,&$results,&$totals = NULL){
       echo"<fieldset><legend style='font-weight:bold'>$title</legend>\n";
       if(sizeof($results) >0){
           echo "<table>\n";
@@ -1487,6 +1520,15 @@ class TableClass{
                 foreach ( array_keys($results[0]) as $key )	echo "\t\t<th style='border-bottom:1px solid black;text-align:center;font-weight:bold;padding-left:2px'>".str_replace("_"," ",$key)."</th>\n";
         	echo "\t</tr>\n";
             echo "</thead>\n";
+            if(isset($totals) && sizeof($totals) > 0){
+                foreach ( $totals as $total )	{
+                echo "\t<tr style='font-weight:bold;'>\n";
+                  foreach ( array_keys($totals[0]) as $key ) {
+                          echo "\t\t<td style='border-top:1px solid black;".(strlen($totals[0][$key]) < 5?"text-align:center;":"")."'>{$total[$key]}</td>\n";
+                  }
+               }
+               echo "\t</tr>\n";
+        }
             echo "<tbody>\n";
             foreach ( $results as $result )	{
               echo "\t<tr>\n";

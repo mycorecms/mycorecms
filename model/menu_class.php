@@ -24,7 +24,7 @@ class MenuClass {
       $menu_items = $access->mysql->get_all($where_criteria,$order_by );
       $this->menu = "<ul class='menu_list'>\n";
       $this->menu .="\t<li><a class='menu_link' href='".$_SERVER['PHP_SELF']."?get_page=index.php'>HOMEPAGE</a></li>\n";
-      $section = '';
+      $section=$section2 = '';
       $count = 0;
       foreach($menu_items as $menu_item){
             $pages = explode(',',$menu_item->page);
@@ -43,11 +43,12 @@ class MenuClass {
       else{
           $row = array();
           foreach($menu_items as $menu_item){
-                if(!strpos($menu_item->section,"/"))
-                    $this->menu .="\t<li><a class='submenu' href='' view='{$menu_item->section}'>".strtoupper($menu_item->section)."</a></li>\n";
+                $section=html_entity_decode($menu_item->section,ENT_QUOTES,'UTF-8');
+                if(!strpos($section,"/"))
+                    $this->menu .="\t<li><a class='submenu' href='' view='{$section}'>".strtoupper($section)."</a></li>\n";
                 else{
-                    if(!isset($row[substr($menu_item->section,0,(strpos($menu_item->section,'/')))]))
-                        $row[substr($menu_item->section,0,(strpos($menu_item->section,'/')))] = "";
+                    if(!isset($row[substr($section,0,(strpos($section,'/')))]))
+                        $row[substr($section,0,(strpos($section,'/')))] = "";
                     /*$row[substr($menu_item->section,0,(strpos($menu_item->section,'/')))] .="\t<li class='dropmenu'><a>".strtoupper(substr($menu_item->section,(strpos($menu_item->section,'/')+1)))."</a>\n";
                     $row[substr($menu_item->section,0,(strpos($menu_item->section,'/')))] .="\t\t<ul>\n";
                     $pages = explode(',',$menu_item->page);
@@ -56,23 +57,23 @@ class MenuClass {
                         $row[substr($menu_item->section,0,(strpos($menu_item->section,'/')))] .="\t\t\t<li><a class='menu_link' href='".$_SERVER['PHP_SELF']."?get_page=".(strrpos($page,'.php')?$menu_item->section."/".$page:preg_replace('/.*\./','',$page))."'>".strtoupper(preg_replace('/\..*$/','',$page))."</a></li>\n";
                     $row[substr($menu_item->section,0,(strpos($menu_item->section,'/')))].="\t\t </ul> \n";
                     $row[substr($menu_item->section,0,(strpos($menu_item->section,'/')))].="\t</li>\n";   */
-                    $menu_insert ="\t<li class='dropmenu ".(strpos($menu_item->section,'/') == strrpos($menu_item->section,'/')?"":"sidemenu")."'><a>".strtoupper(substr($menu_item->section,(strrpos($menu_item->section,'/')+1)))."</a>\n\t\t<ul>\n";
+                    $menu_insert ="\t<li class='".(strpos($section,'/') == strrpos($section,'/')?"dropmenu":"sidemenu")."'><a>".strtoupper(substr($section,(strrpos($section,'/')+1)))."</a>\n\t\t<ul>\n";
 	 	    $pages = explode(',',$menu_item->page);
 	 	    sort($pages);
 	 	    foreach( $pages as $page)
-	 	            $menu_insert .="\t\t\t<li><a class='menu_link' href='".$_SERVER['PHP_SELF']."?get_page={$menu_item->section}/{$page}'>".strtoupper(str_replace('.php','',$page))."</a></li>\n";
+	 	            $menu_insert .="\t\t\t<li><a class='menu_link' href='".$_SERVER['PHP_SELF']."?get_page=".(strrpos($page,'.php')?$section."/".$page:preg_replace('/.*\./','',$page))."'>".strtoupper(preg_replace('/\..*$/','',$page))."</a></li>\n";
  	            $menu_insert .="\t\t </ul> \n\t</li>\n";
-	 	    $section = substr($menu_item->section,0,(strpos($menu_item->section,'/')));
-	 	    if(strpos($menu_item->section,'/') == strrpos($menu_item->section,'/'))
-	 	            $row[$section].= $menu_insert;
+	 	    $section2 = substr($section,0,(strpos($section,'/')));
+	 	    if(strpos($section,'/') == strrpos($section,'/'))
+	 	            $row[$section2].= $menu_insert;
 	 	    else {
 	 	            $last_section ='';
-	 	            foreach(explode("/",$menu_item->section) as $section_search){
-	 	                      if($section_search !=  substr($menu_item->section,(strrpos($menu_item->section,'/')+1)))
+	 	            foreach(explode("/",$section) as $section_search){
+	 	                      if($section_search !=  substr($section,(strrpos($section,'/')+1)))
 	 	                             $last_section = $section_search;
 	 	            }
-	 	            $search = strpos($row[$section],"<a>".strtoupper($last_section)."</a>\n\t\t<ul>\n")+strlen("<a>".strtoupper($last_section)."</a>\n\t\t<ul>\n");
-	 	            $row[$section] = substr_replace($row[$section],$menu_insert,$search,0);
+	 	            $search = strpos($row[$section2],"<a>".strtoupper($last_section)."</a>\n\t\t<ul>\n")+strlen("<a>".strtoupper($last_section)."</a>\n\t\t<ul>\n");
+	 	            $row[$section2] = substr_replace($row[$section2],$menu_insert,$search,0);
                       }
                 }
           }
@@ -80,14 +81,15 @@ class MenuClass {
           $section = '';
 
           foreach($menu_items as $menu_item){
-            if(!strpos($menu_item->section,"/")){
-                $this->menu .="<ul class='sub_menu_list hidden ".str_replace('/','_',$menu_item->section)."'>\n";
-                if(isset($row[$menu_item->section])) //Add Submenus
-                    $this->menu .=  $row[$menu_item->section];
+            $section=html_entity_decode($menu_item->section,ENT_QUOTES,'UTF-8');
+            if(!strpos($section,"/")){
+                $this->menu .="<ul class='sub_menu_list hidden ".str_replace('/','_',$section)."'>\n";
+                if(isset($row[$section])) //Add Submenus
+                    $this->menu .=  $row[$section];
                 $pages = explode(',',$menu_item->page);
                 sort($pages);
                 foreach( $pages as $page)
-                    $this->menu .="\t<li><a class='menu_link' href='".$_SERVER['PHP_SELF']."?get_page=".(strrpos($page,'.php')?$menu_item->section."/".$page:preg_replace('/.*\./','',$page))."'>".strtoupper(preg_replace('/\..*$/','',$page))."</a></li>\n";
+                    $this->menu .="\t<li><a class='menu_link' href='".$_SERVER['PHP_SELF']."?get_page=".(strrpos($page,'.php')?$section."/".$page:preg_replace('/.*\./','',$page))."'>".strtoupper(preg_replace('/\..*$/','',$page))."</a></li>\n";
                 $this->menu .=" </ul> \n";
             }
           }

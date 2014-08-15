@@ -4,17 +4,13 @@ body {
   text-align: center;
   font: 75% arial, tahoma, "Trebuchet MS", verdana, arial, verdana, sans-serif;
   min-width: 1280px;
-  background: url(../images/blue_stripe.gif) #bfd2ee repeat-x 0px 0px;
+  /*background: url(../images/blue_stripe.gif) #bfd2ee repeat-x 0px 0px;  */
 }
 .web_page {
   	margin-left: auto;
   	margin-right: auto;
     width: 1280px;
 	text-align: left;
-
-    /*border: 1px solid rgba(0,0,0,0.5);
-    background: rgba(0,0,0,0.25);
-    padding:10px;     */
 
 }
 .logo{padding: 5px;float:left;display:block;}
@@ -62,33 +58,33 @@ div.result_message { background-color: #faa !important;text-align:center; }
 .menu_list {
   text-align: left;
   letter-spacing: 2px;
-  color: #fff;
+  color: #000000;
    margin:0px;
-  background: #4682b4;
+  background: #c0c0c0;
   padding:10px;
    border-radius: 20px 20px 0px 0px;
    -moz-border-radius: 20px 20px 0px 0px;
-   box-shadow: inset 0px 10px 15px rgba(255,255,255,0.5), inset 0px -10px 15px rgba(255,255,255,0.5);
-   -o-box-shadow:inset 0px 10px 15px rgba(255,255,255,0.5), inset 0px -10px 15px rgba(255,255,255,0.5);
-   -webkit-box-shadow: inset 0px 10px 15px rgba(255,255,255,0.5), inset 0px -10px 15px rgba(255,255,255,0.5);
-   -moz-box-shadow:  inset 0px 10px 15px rgba(255,255,255,0.5), inset 0px -10px 15px rgba(255,255,255,0.5);
+   box-shadow: inset 0px 10px 15px rgba(0,0,0,0.3), inset 0px -10px 15px rgba(255,255,255,0.3);
+   -o-box-shadow:inset 0px 10px 15px rgba(0,0,0,0.3), inset 0px -10px 15px rgba(255,255,255,0.3);
+   -webkit-box-shadow: inset 0px 10px 15px rgba(0,0,0,0.3), inset 0px -10px 15px rgba(255,255,255,0.3);
+   -moz-box-shadow:  inset 0px 10px 15px rgba(0,0,0,0.3), inset 0px -10px 15px rgba(255,255,255,0.3);
 }
 
 .menu_list li {list-style: none;font-size:11px;display: inline;}
-.menu_list li a {padding: 3px .75em;color: #fff;}
-.menu_list li a:link {color: #fff;}
-.menu_list li a:visited {color: #fff;}
-.menu_list li a.current_link {color: #000;}
+.menu_list li a {padding: 3px .75em;color: #000;}
+.menu_list li a:link {color: #000;}
+.menu_list li a:visited {color: #000;}
+.menu_list li a.current_link {color: #000;font-weight:bold;}
 .menu_list li a:hover {color: #000;background: #6495ed;
 box-shadow: 0 2px 6px rgba(0,0,0,0.5), inset 0 5px 5px rgba(255,255,255,0.3), inset 0 8px 5px rgba(255,255,255,0.2), inset 0 -5px 5px rgba(255,255,255,0.3);
    -o-box-shadow: 0 2px 6px rgba(0,0,0,0.5), inset 0 5px 5px rgba(255,255,255,0.3), inset 0 8px 5px rgba(255,255,255,0.2), inset 0 -5px 5px rgba(255,255,255,0.3);
    -webkit-box-shadow: 0 2px 6px rgba(0,0,0,0.5), inset 0 5px 5px rgba(255,255,255,0.3), inset 0 8px 5px rgba(255,255,255,0.2), inset 0 -5px 5px rgba(255,255,255,0.3);
    -moz-box-shadow: 0 2px 6px rgba(0,0,0,0.5), inset 0 5px 5px rgba(255,255,255,0.3), inset 0 8px 5px rgba(255,255,255,0.2), inset 0 -5px 5px rgba(255,255,255,0.3);
 }
-.menu_list li a.selected {color:black;font-weight:bold;}
+.menu_list li a.selected {color:#ffffff;font-weight:bold;}
 
 
-.sub_menu_list {margin:0px 0px 10px 0px;padding: 4px 3px 3px 0px;text-align: left;letter-spacing: 2px;color: #fff;background: #6495ed;}
+.sub_menu_list {margin:0px 0px 10px 0px;padding: 4px 3px 3px 0px;text-align: left;letter-spacing: 2px;color: #fff;background: #6699cc;}
 .sub_menu_list li {list-style: none;font-size:11px;display: inline;}
 .sub_menu_list li a {padding: 0px .75em;color: #fff;}
 .sub_menu_list li a:link {color: #fff;}
@@ -124,7 +120,7 @@ box-shadow: 0 2px 6px rgba(0,0,0,0.5), inset 0 5px 5px rgba(255,255,255,0.3), in
 {
   border: 1px solid #778;
   padding:10px;
-  background: #d2b48c;
+  background: #D2A44c;
     border-radius: 10px 10px 0px 0px;
    -moz-border-radius: 10px 10px 0px 0px;
    box-shadow: 5px -3px 10px rgba(0,0,0,0.5), inset 0px 5px 10px rgba(255,255,255,255.3);
@@ -161,20 +157,20 @@ margin:5px;
   text-align:center;
   padding: 1px 1px 5px 5px;
   margin: 0px;
-  background: #4682b4;
+  background: #c0c0c0;
   border-bottom:1px solid black;
   border-left:1px solid black;
   border-right:1px solid black;
    border-radius: 0px 0px 20px 20px;
    -moz-border-radius: 0px 0px 20px 20px;
-   box-shadow: 5px 5px 10px rgba(0,0,0,0.5), inset 0px 10px 15px rgba(255,255,255,0.5), inset 0px -10px 15px rgba(255,255,255,0.5);
-   -o-box-shadow:5px 5px 10px rgba(0,0,0,0.5), inset 0px 10px 15px rgba(255,255,255,0.5), inset 0px -10px 15px rgba(255,255,255,0.5);
-   -webkit-box-shadow: 5px 5px 10px rgba(0,0,0,0.5), inset 0px 10px 15px rgba(255,255,255,0.5), inset 0px -10px 15px rgba(255,255,255,0.5);
-   -moz-box-shadow: 5px 5px 10px rgba(0,0,0,0.5), inset 0px 10px 15px rgba(255,255,255,0.5), inset 0px -10px 15px rgba(255,255,255,0.5);
-  color: #fff;
+   box-shadow: 5px 5px 10px rgba(0,0,0,0.5), inset 0px 10px 15px rgba(210,210,210,0.5), inset 0px -10px 15px rgba(0,0,0,0.7);
+   -o-box-shadow:5px 5px 10px rgba(0,0,0,0.5), inset 0px 10px 15px rgba(210,210,210,0.5), inset 0px -10px 15px rgba(0,0,0,0.7);
+   -webkit-box-shadow: 5px 5px 10px rgba(0,0,0,0.5), inset 0px 10px 15px rgba(210,210,210,0.5), inset 0px -10px 15px rgba(0,0,0,0.7);
+   -moz-box-shadow: 5px 5px 10px rgba(0,0,0,0.5), inset 0px 10px 15px rgba(210,210,210,0.5), inset 0px -10px 15px rgba(0,0,0,0.7);
+  color: #000000;
 }
-.footer a {color: #fff;}
-.footer  a:hover{color: #000;}
+.footer a {color: #000000;}
+
 
 		/* LINKS */
 a {color: #cd853f;}
@@ -199,7 +195,7 @@ div.table_options{float:right;}
 div.table_options a{margin-right:5px;color:white;}
 div.table_options a:hover{color:#000080;}
 div.total_results{float:left;margin-right:10px;}
-div.option_container{margin-top:5px;height:25px;background-color:#4682b4;width:100%;color:black;padding-top:10px;
+div.option_container{margin-top:5px;height:25px;background-color:#003366;width:100%;color:#ffffff;padding-top:10px;
    border-radius: 10px 10px 0px 0px;
    -moz-border-radius: 10px 10px 0px 0px;
    box-shadow: 5px 5px 10px rgba(0,0,0,0.5), inset 0px 10px 20px rgba(255,255,255,0.5);
@@ -272,10 +268,10 @@ input[type=checkbox],form.default_form input[type=checkbox]{ border: 0px;margin:
 form.default_form .field_container{ display:block;clear:both;padding-top:5px;}
 form.default_form .description{ float:left;padding-left:5px;}
 
-div.table_link-checkboxes_field ul,div.checkbox-list_field ul{list-style:none;display:block;margin:0px;padding:0px;}
-div.table_link-checkboxes_field li,div.checkbox-list_field li{float:left;width:200px;}
-form.default_form div.table_link-checkboxes_field,form.default_form div.checkbox-list_field{float:left;width:350px;}
-div.table_link-checkboxes_field input[type=checkbox],div.checkbox-list_field input[type=checkbox]{border: 0px; width:10px;margin:0px;float:left;}
+div.table_link-checkboxes_field ul,div.checkbox-list_field ul,div.radio-list_field ul{list-style:none;display:block;margin:0px;padding:0px;}
+div.table_link-checkboxes_field li,div.checkbox-list_field li,div.radio-list_field li{float:left;width:200px;}
+form.default_form div.table_link-checkboxes_field,form.default_form div.checkbox-list_field,form.default_form div.radio-list_field{float:left;width:350px;}
+div.table_link-checkboxes_field input[type=checkbox],div.checkbox-list_field input[type=checkbox],div.radio-list_field input[type=radio]{border: 0px; width:10px;margin:0px;float:left;}
 div.table_link-checkboxes_field label,div.checkbox-list_field label{float:none;display:block;}
 
 div.edit_field{width:100%; min-height:10px;cursor:text;}

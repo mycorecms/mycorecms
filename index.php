@@ -1,8 +1,8 @@
 <?php
  header("P3P: CP=\"ALL DSP COR PSAa PSDa OUR IND ONL UNI COM NAV INT STA\"");
-/*
- * Main index, calls requested page
-    Copyright (C) 2013  Lance Olinger
+/*Main index, calls requested page
+
+    Copyright (C) 2007-2014 MyCoreCMS
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -11,7 +11,7 @@
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details. See <http://www.gnu.org/licenses/>.
+    GNU General Public License for more details. <http://www.gnu.org/licenses/>.
  */
 
 require_once dirname(__FILE__) . "/model/settings.php";
@@ -64,7 +64,7 @@ require_once SITEPATH . "/components/site/page.php";
                   if(!$check){ //If we have no results Check if any new children are present + update permissions
                         require_once SITEPATH . "/components/site/user_page_access.php";
                         $page_access = new UserPageAccessClass;
-                        $page_access->update_permissions($user->mysql->user_id);
+                        $page_access->update_permissions($user->mysql->user_id,$get_page);
 
                         //Rerun the permission check
                         $permission_check = $user->mysql->get_sql('SELECT permissions FROM user_page_access WHERE user_id = '.$user->mysql->user_id);
@@ -82,7 +82,7 @@ require_once SITEPATH . "/components/site/page.php";
                         require_once SITEPATH . "/components/".$get_page;
                         eval("\$class_page = new ".str_replace("_","",$page)."Class();");
                       }
-                      $class_page->user = $user; //pass the user so the class can check user_level
+                      $class_page->user = $user; //pass the user so the class can check user_role
                       $class_page->action_check();
                }
                else
@@ -98,7 +98,8 @@ require_once SITEPATH . "/components/site/page.php";
               $web_page->render();
             }
         }
-
+         else //Load the page
+            $user->show_login_form();
 
 
 ?>
